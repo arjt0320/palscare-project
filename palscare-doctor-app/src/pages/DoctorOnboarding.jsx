@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Stethoscope, ShieldCheck, User, Mail, GraduationCap, FileText, ChevronRight, Upload, X } from "lucide-react";
-import { registerDoctor, specialties } from "@/lib/mockData";
+import { registerDoctor, specialties, apiRegisterDoctor } from "@/lib/mockData";
 import { toast } from "sonner";
 
 export default function DoctorOnboarding() {
@@ -56,33 +56,37 @@ export default function DoctorOnboarding() {
 
     setIsLoading(true);
 
-    setTimeout(() => {
-      const res = registerDoctor({
-        name: `Dr. ${name}`,
-        specialty,
-        phone,
-        registrationNumber: regNo,
-        university,
-        experience: parseInt(experience, 10) || 1,
-        about: bio || `Dedicated specialist in ${specialty}.`,
-        feeUsd: parseInt(fee, 10) || 60,
-        clinic: "Global Health Center",
-        distanceKm: 2.5,
-        modes: ["in-person", "telemedicine"],
-        photo: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?q=80&w=256&h=256&fit=crop" // standard professional doctor stock photo
+    apiRegisterDoctor({
+      name: `Dr. ${name}`,
+      specialty,
+      email,
+      phone,
+      registrationNumber: regNo,
+      university,
+      experience: parseInt(experience, 10) || 1,
+      about: bio || `Dedicated specialist in ${specialty}.`,
+      feeUsd: parseInt(fee, 10) || 60,
+      clinic: "Global Health Center",
+      distanceKm: 2.5,
+      modes: ["in-person", "telemedicine"],
+      photo: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?q=80&w=256&h=256&fit=crop"
+    })
+      .then((res) => {
+        setIsLoading(false);
+        if (res.success) {
+          toast.success("Onboarding submitted!", {
+            description: "Your credentials have been uploaded. Verification is pending."
+          });
+          navigate("/doctor/portal");
+        } else {
+          toast.error("Failed to submit onboarding.");
+        }
+      })
+      .catch((err) => {
+        setIsLoading(false);
+        toast.error("Failed to submit onboarding: API error.");
+        console.error(err);
       });
-
-      setIsLoading(false);
-
-      if (res.success) {
-        toast.success("Onboarding submitted!", {
-          description: "Your credentials have been uploaded. Verification is pending."
-        });
-        navigate("/doctor/portal");
-      } else {
-        toast.error("Failed to submit onboarding.");
-      }
-    }, 1500);
   };
 
   return (

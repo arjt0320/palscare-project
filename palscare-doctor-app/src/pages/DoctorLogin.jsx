@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Lock, Mail, User, ShieldCheck } from "lucide-react";
-import { loginUser, registerUser } from "@/lib/mockData";
+import { Eye, EyeOff, Lock, Mail, User, ShieldCheck, Stethoscope } from "lucide-react";
+import { registerUser, apiRegisterDoctor, apiLoginDoctor } from "@/lib/mockData";
 import { toast } from "sonner";
 
-export default function Login() {
+export default function DoctorLogin() {
   const [isLogin, setIsLogin] = useState(true);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -26,24 +26,33 @@ export default function Login() {
     // Simulate brief network delay
     setTimeout(() => {
       if (isLogin) {
-        const res = loginUser(email, password);
-        setIsLoading(false);
-        if (res.success) {
-          toast.success("Welcome back!", {
-            description: "Successfully logged in to your Palscare portal."
+        apiLoginDoctor(email, password)
+          .then((res) => {
+            setIsLoading(false);
+            if (res.success) {
+              toast.success("Welcome back, Dr. " + res.doctor.name.replace("Dr. ", "") + "!", {
+                description: "Successfully logged in to your Palscare Doctor Portal."
+              });
+              navigate("/doctor/portal");
+            } else {
+              // Redirect to onboarding if they successfully logged in but have no profile
+              toast.info("Please complete onboarding profile setup first.");
+              navigate("/doctor/onboarding");
+            }
+          })
+          .catch((err) => {
+            setIsLoading(false);
+            toast.error("Doctor profile not found in database. Please Register first.");
+            console.error(err);
           });
-          navigate("/");
-        } else {
-          toast.error(res.message || "Failed to log in.");
-        }
       } else {
         const res = registerUser(name, email, password);
         setIsLoading(false);
         if (res.success) {
           toast.success("Account created!", {
-            description: "Welcome to Palscare. Your profile has been generated."
+            description: "Welcome to Palscare. Let's finish your clinical onboarding."
           });
-          navigate("/");
+          navigate("/doctor/onboarding");
         } else {
           toast.error(res.message || "Failed to register.");
         }
@@ -61,10 +70,10 @@ export default function Login() {
         {/* Brand Header */}
         <div className="text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl gradient-hero text-primary-foreground shadow-glow">
-            <ShieldCheck className="h-8 w-8" />
+            <Stethoscope className="h-8 w-8" />
           </div>
           <h1 className="mt-4 font-display text-3xl font-bold tracking-tight text-foreground">Palscare</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Your booking & health tracking portal</p>
+          <p className="mt-2 text-sm text-muted-foreground">Doctor Consultation & Portal Management</p>
         </div>
 
         {/* Tab Selector */}
@@ -102,10 +111,10 @@ export default function Login() {
         {/* Card Form */}
         <form onSubmit={handleSubmit} className="mt-6 rounded-3xl bg-card/80 p-6 shadow-elevated backdrop-blur-xl border border-border/50">
           <h2 className="font-display text-xl font-semibold text-foreground">
-            {isLogin ? "Sign in to account" : "Create your account"}
+            {isLogin ? "Sign in as Doctor" : "Create your account"}
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            {isLogin ? "Enter your email and password below" : "Get started by filling out your details"}
+            {isLogin ? "Enter your email and password below" : "Register a new clinical account to get started"}
           </p>
 
           <div className="mt-6 space-y-4">
@@ -116,7 +125,7 @@ export default function Login() {
                 </span>
                 <input
                   type="text"
-                  placeholder="Full Name"
+                  placeholder="Full Name (e.g. Sarah Smith)"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full rounded-2xl border border-border bg-background py-3.5 pl-11 pr-4 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
@@ -176,7 +185,7 @@ export default function Login() {
         {isLogin && (
           <div className="mt-4 text-center">
             <p className="text-xs text-muted-foreground">
-              Mock login details: <span className="font-semibold text-foreground">alex.morgan@example.com</span> / <span className="font-semibold text-foreground">password123</span>
+              Mock login details: <span className="font-semibold text-foreground">doctor@test.com</span> / <span className="font-semibold text-foreground">password123</span>
             </p>
           </div>
         )}

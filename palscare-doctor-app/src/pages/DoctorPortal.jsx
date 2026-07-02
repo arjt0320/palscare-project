@@ -36,7 +36,15 @@ import {
   logoutDoctor,
   getDoctorSlots,
   addDoctorSlot,
-  removeDoctorSlot
+  removeDoctorSlot,
+  apiGetCurrentDoctor,
+  apiGetChambers,
+  apiAddChamber,
+  apiGetDoctorSlots,
+  apiAddDoctorSlot,
+  apiRemoveDoctorSlot,
+  apiGetDoctorAppointments,
+  apiUpdateDoctorProfile
 } from "@/lib/mockData";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -76,47 +84,150 @@ export default function DoctorPortal() {
   const [certs, setCerts] = useState([]);
   const [newCertTitle, setNewCertTitle] = useState("");
   const [newCertIssuer, setNewCertIssuer] = useState("");
+
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editSpecialty, setEditSpecialty] = useState("");
+  const [editUniversity, setEditUniversity] = useState("");
+  const [editRegNo, setEditRegNo] = useState("");
+  const [editExperience, setEditExperience] = useState("");
+  const [editBio, setEditBio] = useState("");
+  const [editPhone, setEditPhone] = useState("");
   
   const navigate = useNavigate();
 
   useEffect(() => {
-    const current = getCurrentDoctor();
+    loadDoctorPortalData();
+  }, [navigate, activeTab]);
+
+  const loadDoctorPortalData = async () => {
+    const sessionStr = localStorage.getItem("palscare-current-user");
+    if (!sessionStr) {
+      toast.error("Please login first.");
+      navigate("/doctor/login");
+      return;
+    }
+
+    const current = await apiGetCurrentDoctor();
     if (!current) {
       toast.error("Please complete onboarding first.");
       navigate("/doctor/onboarding");
       return;
     }
-    // Preseed Chembur Chamber for testing convenience if doctor has no chambers
-    let docChambers = current.chambers || [];
-    if (docChambers.length === 0) {
-      docChambers = [
-        { name: "Chembur Chamber", address: "102, Diamond Plaza, Near Chembur Station, Mumbai" },
-        { name: "Riverside Clinic", address: "405, Riverfront Road, City Center" }
-      ];
-      current.chambers = docChambers;
-      updateDoctorProfile({ chambers: docChambers });
-    }
 
     setDoctor(current);
-    setChambers(docChambers);
     setCerts(current.certifications || []);
-    if (docChambers.length > 0) {
-      setSelectedChamber(docChambers[0].name);
-    }
     
-    // Load appointments matching this doctor
-    const appts = getAppointments().filter(a => a.doctorId === current.id);
-    setAppointments(appts);
+    setEditName(current.name || "");
+    setEditSpecialty(current.specialty || "");
+    setEditUniversity(current.university || "");
+    setEditRegNo(current.registrationNumber || "");
+    setEditExperience(current.experience || "1");
+    setEditBio(current.about || "");
+    setEditPhone(current.phone || "");
 
-    // Load slots
-    const docSlots = getDoctorSlots(current.id);
-    setSlots(docSlots);
-  }, [navigate]);
+    // Load chambers from backend
+    try {
+      const backendChambers = await apiGetChambers();
+      if (backendChambers.length === 0) {
+        // preseed first chamber if empty
+        const preseeded = await apiAddChamber("Chembur Chamber", "102, Diamond Plaza, Near Chembur Station, Mumbai");
+        setChambers([preseeded]);
+        setSelectedChamber(preseeded.name);
+      } else {
+        setChambers(backendChambers);
+        setSelectedChamber(backendChambers[0].name);
+      }
+    } catch (e) {
+      console.error(e);
+      setChambers([]);
+    }
+
+    // Load appointments matching this doctor from backend database
+    try {
+      const apiAppts = await apiGetDoctorAppointments();
+      const mapped = apiAppts.map(a => {
+        const timePart = a.appointmentDatetime.split("T")[1];
+        return {
+          id: a.id,
+          date: a.appointmentDatetime.split("T")[0],
+          time: formatTimeStr(timePart),
+          mode: a.consultationMode === "VIDEO" ? "telemedicine" : "in-person",
+          reason: a.reason,
+          status: a.status === "BOOKED" ? "upcoming" : a.status.toLowerCase()
+        };
+      });
+      setAppointments(mapped);
+    } catch (err) {
+      console.error("Failed to load doctor appointments from backend", err);
+      setAppointments([]);
+    }
+
+    // Load slots from backend
+    loadDoctorSlots();
+  };
+
+  const loadDoctorSlots = () => {
+    apiGetDoctorSlots().then((data) => {
+      // Map backend slots to component structure:
+      // slotDay -> day, startTime -> time (formatted e.g. "09:00 AM"), slotMode -> mode (lowercase)
+      const mapped = data.map(s => ({
+        id: s.id,
+        day: s.slotDay,
+        time: formatTimeStr(s.startTime),
+        mode: s.slotMode.toLowerCase(),
+        chamberName: s.chamber ? s.chamber.name : "",
+        isBooked: s.isBooked,
+        patientName: s.isBooked ? "Patient User" : ""
+      }));
+      setSlots(mapped);
+    }).catch(err => console.error("Failed to load doctor slots", err));
+  };
+
+  const formatTimeStr = (timeStr) => {
+    try {
+      const [hoursStr, minutesStr] = timeStr.split(":");
+      let hours = parseInt(hoursStr, 10);
+      const ampm = hours >= 12 ? "PM" : "AM";
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      return `${hours}:${minutesStr} ${ampm}`;
+    } catch (e) {
+      return timeStr;
+    }
+  };
 
   const handleLogout = () => {
     logoutDoctor();
     toast.success("Logged out from Doctor Portal");
-    navigate("/doctor/onboarding");
+    navigate("/doctor/login");
+  };
+
+  const handleSaveProfile = (e) => {
+    e.preventDefault();
+    if (!editName || !editSpecialty || !editUniversity || !editRegNo || !editExperience) {
+      toast.error("Please fill in all required fields.");
+      return;
+    }
+
+    apiUpdateDoctorProfile({
+      name: editName,
+      specialty: editSpecialty,
+      university: editUniversity,
+      registrationNumber: editRegNo,
+      experience: editExperience,
+      about: editBio,
+      phone: editPhone
+    })
+      .then((updatedDoc) => {
+        setDoctor(updatedDoc);
+        setIsEditingProfile(false);
+        toast.success("Profile updated successfully!");
+      })
+      .catch((err) => {
+        toast.error("Failed to update profile.");
+        console.error(err);
+      });
   };
 
   // Add Chamber Action
@@ -124,25 +235,24 @@ export default function DoctorPortal() {
     e.preventDefault();
     if (!newChamberName || !newChamberAddress) return;
     
-    const updatedChambers = [...chambers, { name: newChamberName, address: newChamberAddress }];
-    setChambers(updatedChambers);
-    updateDoctorProfile({ chambers: updatedChambers });
-    if (!selectedChamber) {
-      setSelectedChamber(newChamberName);
-    }
-    setNewChamberName("");
-    setNewChamberAddress("");
-    toast.success("Chamber added successfully!");
+    apiAddChamber(newChamberName, newChamberAddress)
+      .then((newChamber) => {
+        setChambers([...chambers, newChamber]);
+        if (!selectedChamber) {
+          setSelectedChamber(newChamber.name);
+        }
+        setNewChamberName("");
+        setNewChamberAddress("");
+        toast.success("Chamber added successfully!");
+      })
+      .catch((err) => {
+        toast.error("Failed to add chamber.");
+        console.error(err);
+      });
   };
 
   const handleRemoveChamber = (index) => {
-    const updatedChambers = chambers.filter((_, i) => i !== index);
-    setChambers(updatedChambers);
-    updateDoctorProfile({ chambers: updatedChambers });
-    if (updatedChambers.length > 0) {
-      setSelectedChamber(updatedChambers[0].name);
-    }
-    toast.success("Chamber removed.");
+    toast.error("Chamber deletion is disabled locally. Please contact admin.");
   };
 
   // Add Certification Action
@@ -168,39 +278,6 @@ export default function DoctorPortal() {
     setMedications(medications.filter((_, i) => i !== index));
   };
 
-  // Handle Prescription Submit
-  const handlePrescriptionSubmit = (e) => {
-    e.preventDefault();
-    if (!prescriptionTitle || !prescriptionNotes) {
-      toast.error("Please enter a title and consultation notes.");
-      return;
-    }
-
-    // Filter blank meds
-    const validMeds = medications.filter(m => m.name.trim() !== "");
-
-    addPrescription({
-      appointmentId: activeAppt.id,
-      doctorId: doctor.id,
-      title: prescriptionTitle,
-      notes: prescriptionNotes,
-      medications: validMeds,
-      testRecommended: recommendedTest
-    });
-
-    toast.success("Prescription issued!", {
-      description: "Patient Alex Morgan can now view this in their portal."
-    });
-
-    // Reset states
-    setActiveAppt(null);
-    setPrescriptionTitle("");
-    setPrescriptionNotes("");
-    setMedications([{ name: "", dosage: "", frequency: "" }]);
-    setRecommendedTest("");
-    setActiveTab("dashboard");
-  };
-
   if (!doctor) return null;
 
   return (
@@ -214,7 +291,7 @@ export default function DoctorPortal() {
               <div className="grid h-12 w-12 place-items-center rounded-xl bg-white/20 font-display text-lg font-semibold ring-2 ring-white/30 backdrop-blur">
                 {doctor.initials}
               </div>
-              <div>
+              <div className="text-left">
                 <h1 className="font-display text-lg font-bold leading-tight">{doctor.name}</h1>
                 <p className="text-xs opacity-90">{doctor.specialty}</p>
               </div>
@@ -268,7 +345,7 @@ export default function DoctorPortal() {
               </div>
 
               {/* Booked Patients list */}
-              <section className="space-y-3">
+              <section className="space-y-3 text-left">
                 <h2 className="font-display text-base font-semibold text-foreground">Upcoming Consultations</h2>
                 {appointments.map((appt) => (
                   <article key={appt.id} className="rounded-2xl bg-card p-4 shadow-soft border border-border space-y-3">
@@ -335,7 +412,7 @@ export default function DoctorPortal() {
                   </div>
 
                   {consultHistoryTab === "upcoming" ? (
-                    <section className="space-y-3">
+                    <section className="space-y-3 text-left">
                       <h2 className="font-display text-sm font-semibold text-foreground">Pending Appointments</h2>
                       {appointments.filter(a => a.status === "upcoming").map((appt) => (
                         <article key={appt.id} className="rounded-2xl bg-card p-4 shadow-soft border border-border space-y-3">
@@ -370,7 +447,7 @@ export default function DoctorPortal() {
                       )}
                     </section>
                   ) : (
-                    <section className="space-y-3">
+                    <section className="space-y-3 text-left">
                       <h2 className="font-display text-sm font-semibold text-foreground">Consultation History Log</h2>
                       {appointments.filter(a => a.status !== "upcoming").map((appt) => (
                         <article key={appt.id} className="rounded-2xl bg-card p-4 shadow-soft border border-border space-y-2">
@@ -411,7 +488,7 @@ export default function DoctorPortal() {
               ) : (
                 <div className="space-y-4">
                   {/* Active Patient Summary */}
-                  <section className="rounded-2xl bg-primary-soft/50 p-4 border border-primary/20 space-y-2">
+                  <section className="rounded-2xl bg-primary-soft/50 p-4 border border-primary/20 space-y-2 text-left">
                     <div className="flex justify-between items-center">
                       <h2 className="font-display text-base font-semibold text-primary flex items-center gap-1">
                         <Stethoscope className="h-4 w-4" />
@@ -428,7 +505,7 @@ export default function DoctorPortal() {
 
                   {/* Patient History Check with PDF document access */}
                   <section className="rounded-2xl bg-card p-4 shadow-soft border border-border">
-                    <h3 className="font-display text-sm font-semibold text-foreground mb-2.5">Alex Morgan's Medical History</h3>
+                    <h3 className="font-display text-sm font-semibold text-foreground mb-2.5 text-left">Alex Morgan's Medical History</h3>
                     <div className="max-h-[160px] overflow-y-auto space-y-3 pr-1">
                       {medicalHistory.map((rec) => (
                         <div key={rec.id} className="flex justify-between items-start text-xs border-l-2 border-primary-soft pl-2.5 py-0.5 text-left">
@@ -487,7 +564,7 @@ export default function DoctorPortal() {
                     setMedications([{ name: "", dosage: "", frequency: "" }]);
                     setRecommendedTest("");
                     setConsultHistoryTab("previous");
-                  }} className="rounded-2xl bg-card p-4 shadow-soft border border-border space-y-3 animate-fade-up">
+                  }} className="rounded-2xl bg-card p-4 shadow-soft border border-border space-y-3 animate-fade-up text-left">
                     <h3 className="font-display text-sm font-semibold text-foreground">Write Prescription</h3>
                     
                     <div>
@@ -603,7 +680,7 @@ export default function DoctorPortal() {
           {activeTab === "slots" && (
             <div className="space-y-4 animate-fade-up">
               {/* Chambers Manager */}
-              <section className="rounded-2xl bg-card p-4 shadow-soft border border-border space-y-3">
+              <section className="rounded-2xl bg-card p-4 shadow-soft border border-border space-y-3 text-left">
                 <h3 className="font-display text-sm font-semibold text-foreground flex items-center gap-1">
                   <Building className="h-4 w-4 text-primary" />
                   Manage Clinical Chambers
@@ -612,7 +689,7 @@ export default function DoctorPortal() {
                 {/* Chambers list */}
                 <div className="space-y-2">
                   {chambers.map((ch, idx) => (
-                    <div key={idx} className="flex justify-between items-center bg-secondary/50 p-2.5 rounded-xl text-xs">
+                    <div key={idx} className="flex justify-between items-center bg-secondary/50 p-2.5 rounded-xl text-xs text-left">
                       <div>
                         <p className="font-semibold text-foreground">{ch.name}</p>
                         <p className="text-muted-foreground text-[10px]">{ch.address}</p>
@@ -635,7 +712,7 @@ export default function DoctorPortal() {
                     placeholder="Chamber Name (e.g. Riverside Clinic)"
                     value={newChamberName}
                     onChange={(e) => setNewChamberName(e.target.value)}
-                    className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-xs outline-none"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-xs outline-none focus:border-primary"
                   />
                   <input
                     type="text"
@@ -643,7 +720,7 @@ export default function DoctorPortal() {
                     placeholder="Clinic Address"
                     value={newChamberAddress}
                     onChange={(e) => setNewChamberAddress(e.target.value)}
-                    className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-xs outline-none"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-xs outline-none focus:border-primary"
                   />
                   <button type="submit" className="w-full rounded-xl bg-secondary py-2 text-xs font-semibold text-primary">
                     Add Chamber
@@ -652,7 +729,7 @@ export default function DoctorPortal() {
               </section>
 
               {/* Slot generator template */}
-              <section className="rounded-2xl bg-card p-4 shadow-soft border border-border space-y-3">
+              <section className="rounded-2xl bg-card p-4 shadow-soft border border-border space-y-3 text-left">
                 <h3 className="font-display text-sm font-semibold text-foreground flex items-center gap-1">
                   <Clock className="h-4 w-4 text-primary" />
                   Define Availability Template
@@ -693,7 +770,7 @@ export default function DoctorPortal() {
                     <select
                       value={slotDay}
                       onChange={(e) => setSlotDay(e.target.value)}
-                      className="w-full rounded-xl border border-border bg-background px-2.5 py-2 text-xs outline-none"
+                      className="w-full rounded-xl border border-border bg-background px-2.5 py-2 text-xs outline-none focus:border-primary"
                     >
                       {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(d => (
                         <option key={d} value={d}>{d}</option>
@@ -718,7 +795,7 @@ export default function DoctorPortal() {
                     <select
                       value={slotDuration}
                       onChange={(e) => setSlotDuration(e.target.value)}
-                      className="w-full rounded-xl border border-border bg-background px-2.5 py-2 text-xs outline-none"
+                      className="w-full rounded-xl border border-border bg-background px-2.5 py-2 text-xs outline-none focus:border-primary"
                     >
                       {["15", "20", "30", "45", "60"].map(d => (
                         <option key={d} value={d}>{d} mins</option>
@@ -731,7 +808,7 @@ export default function DoctorPortal() {
                       <select 
                         value={selectedChamber}
                         onChange={(e) => setSelectedChamber(e.target.value)}
-                        className="w-full rounded-xl border border-border bg-background px-2.5 py-2 text-xs outline-none"
+                        className="w-full rounded-xl border border-border bg-background px-2.5 py-2 text-xs outline-none focus:border-primary"
                       >
                         {chambers.map((ch, i) => (
                           <option key={i} value={ch.name}>{ch.name}</option>
@@ -749,17 +826,22 @@ export default function DoctorPortal() {
                       toast.error("Please add a chamber address first.");
                       return;
                     }
-                    const slot = {
-                      day: slotDay,
-                      time: slotStart,
-                      mode: slotType,
-                      chamberName: slotType === "chamber" ? selectedChamber : "",
-                    };
-                    const nextSlots = addDoctorSlot(doctor.id, slot);
-                    setSlots(nextSlots);
-                    toast.success("Availability slot generated!", {
-                      description: `Active ${slotType} slot registered on ${slotDay} at ${slotStart}.`
-                    });
+                    const activeChamber = slotType === "chamber" 
+                      ? chambers.find(c => c.name === selectedChamber) 
+                      : null;
+                    const activeChamberId = activeChamber ? activeChamber.id : null;
+
+                    apiAddDoctorSlot(slotDay, slotStart, slotType, activeChamberId)
+                      .then(() => {
+                        loadDoctorSlots();
+                        toast.success("Availability slot generated!", {
+                          description: `Active ${slotType} slot registered on ${slotDay} at ${slotStart}.`
+                        });
+                      })
+                      .catch((err) => {
+                        toast.error("Failed to generate slot.");
+                        console.error(err);
+                      });
                   }}
                   className="w-full rounded-xl bg-primary py-2.5 text-xs font-semibold text-primary-foreground shadow-soft hover:bg-primary/95 transition"
                 >
@@ -768,7 +850,7 @@ export default function DoctorPortal() {
               </section>
 
               {/* Weekly Slots list & daily schedule */}
-              <section className="rounded-2xl bg-card p-4 shadow-soft border border-border space-y-3">
+              <section className="rounded-2xl bg-card p-4 shadow-soft border border-border space-y-3 text-left">
                 <h3 className="font-display text-sm font-semibold text-foreground flex items-center gap-1">
                   <CalendarDays className="h-4 w-4 text-primary" />
                   Your Weekly Slots Schedule
@@ -807,9 +889,15 @@ export default function DoctorPortal() {
                                 {!s.isBooked && (
                                   <button
                                     onClick={() => {
-                                      const nextSlots = removeDoctorSlot(doctor.id, s.id);
-                                      setSlots(nextSlots);
-                                      toast.success("Slot removed.");
+                                      apiRemoveDoctorSlot(s.id)
+                                        .then(() => {
+                                          loadDoctorSlots();
+                                          toast.success("Slot removed.");
+                                        })
+                                        .catch((err) => {
+                                          toast.error("Failed to remove slot.");
+                                          console.error(err);
+                                        });
                                     }}
                                     className="text-destructive p-1 rounded hover:bg-destructive/10"
                                   >
@@ -834,29 +922,135 @@ export default function DoctorPortal() {
           {/* TAB D: PROFILE & CERTS */}
           {activeTab === "profile" && (
             <div className="space-y-4 animate-fade-up">
-              {/* Doctor Qualifications summary */}
-              <section className="rounded-2xl bg-card p-4 shadow-soft border border-border space-y-2.5 text-xs">
-                <h3 className="font-display text-sm font-semibold text-foreground">Clinical Qualifications</h3>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">University</span>
-                  <span className="font-semibold text-foreground">{doctor.university}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Registration Number</span>
-                  <span className="font-semibold text-foreground">{doctor.registrationNumber}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Experience</span>
-                  <span className="font-semibold text-foreground">{doctor.experience} Years</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Contact</span>
-                  <span className="font-semibold text-foreground">{doctor.phone}</span>
-                </div>
-              </section>
+              
+              {isEditingProfile ? (
+                <form onSubmit={handleSaveProfile} className="rounded-2xl bg-card p-4 shadow-soft border border-border space-y-3 text-xs text-left">
+                  <h3 className="font-display text-sm font-semibold text-primary">Edit Profile Details</h3>
+                  
+                  <div className="space-y-1">
+                    <label className="text-muted-foreground font-semibold">Doctor Name</label>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-1.5 outline-none focus:border-primary"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-muted-foreground font-semibold">Specialty</label>
+                    <input
+                      type="text"
+                      value={editSpecialty}
+                      onChange={(e) => setEditSpecialty(e.target.value)}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-1.5 outline-none focus:border-primary"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-muted-foreground font-semibold">University</label>
+                    <input
+                      type="text"
+                      value={editUniversity}
+                      onChange={(e) => setEditUniversity(e.target.value)}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-1.5 outline-none focus:border-primary"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-muted-foreground font-semibold">Registration Number</label>
+                    <input
+                      type="text"
+                      value={editRegNo}
+                      onChange={(e) => setEditRegNo(e.target.value)}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-1.5 outline-none focus:border-primary"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-muted-foreground font-semibold">Experience Years</label>
+                    <input
+                      type="number"
+                      value={editExperience}
+                      onChange={(e) => setEditExperience(e.target.value)}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-1.5 outline-none focus:border-primary"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-muted-foreground font-semibold">Phone Contact</label>
+                    <input
+                      type="text"
+                      value={editPhone}
+                      onChange={(e) => setEditPhone(e.target.value)}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-1.5 outline-none focus:border-primary"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-muted-foreground font-semibold">Bio / Clinic About</label>
+                    <textarea
+                      value={editBio}
+                      onChange={(e) => setEditBio(e.target.value)}
+                      rows={3}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-1.5 outline-none focus:border-primary"
+                    />
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      type="submit"
+                      className="flex-1 rounded-xl bg-primary py-2 text-xs font-semibold text-primary-foreground shadow-soft hover:bg-primary/95 transition"
+                    >
+                      Save Profile
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingProfile(false)}
+                      className="flex-1 rounded-xl bg-secondary py-2 text-xs font-semibold text-foreground hover:bg-secondary/80 transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <section className="rounded-2xl bg-card p-4 shadow-soft border border-border space-y-2.5 text-xs text-left">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-display text-sm font-semibold text-foreground">Clinical Qualifications</h3>
+                    <button
+                      onClick={() => setIsEditingProfile(true)}
+                      className="rounded-lg bg-primary-soft text-primary px-2.5 py-1 font-semibold text-[10px] hover:bg-primary-soft/80"
+                    >
+                      Edit Profile
+                    </button>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">University</span>
+                    <span className="font-semibold text-foreground">{doctor.university}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Registration Number</span>
+                    <span className="font-semibold text-foreground">{doctor.registrationNumber}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Experience</span>
+                    <span className="font-semibold text-foreground">{doctor.experience} Years</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Contact</span>
+                    <span className="font-semibold text-foreground">{doctor.phone}</span>
+                  </div>
+                  {doctor.about && (
+                    <div className="border-t border-border pt-2.5 space-y-1">
+                      <p className="text-muted-foreground font-semibold">About Doctor</p>
+                      <p className="text-foreground leading-relaxed italic">{doctor.about}</p>
+                    </div>
+                  )}
+                </section>
+              )}
 
               {/* Certifications Manager */}
-              <section className="rounded-2xl bg-card p-4 shadow-soft border border-border space-y-3">
+              <section className="rounded-2xl bg-card p-4 shadow-soft border border-border space-y-3 text-left">
                 <h3 className="font-display text-sm font-semibold text-foreground flex items-center gap-1">
                   <Award className="h-4 w-4 text-primary" />
                   Certifications
@@ -865,7 +1059,7 @@ export default function DoctorPortal() {
                 {/* Certifications List */}
                 <div className="space-y-2">
                   {certs.map((c, idx) => (
-                    <div key={idx} className="bg-secondary/40 p-2.5 rounded-xl text-xs flex justify-between items-center">
+                    <div key={idx} className="bg-secondary/40 p-2.5 rounded-xl text-xs flex justify-between items-center text-left">
                       <div>
                         <p className="font-semibold text-foreground">{c.title}</p>
                         <p className="text-muted-foreground text-[10px]">{c.issuer} ({c.date})</p>
@@ -885,7 +1079,7 @@ export default function DoctorPortal() {
                     placeholder="Certificate Title (e.g. Board Certified Derm)"
                     value={newCertTitle}
                     onChange={(e) => setNewCertTitle(e.target.value)}
-                    className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-xs outline-none"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-xs outline-none focus:border-primary"
                   />
                   <input
                     type="text"
@@ -893,7 +1087,7 @@ export default function DoctorPortal() {
                     placeholder="Issuing Organization"
                     value={newCertIssuer}
                     onChange={(e) => setNewCertIssuer(e.target.value)}
-                    className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-xs outline-none"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-xs outline-none focus:border-primary"
                   />
                   <button type="submit" className="w-full rounded-xl bg-secondary py-2 text-xs font-semibold text-primary">
                     Add Certification
@@ -1074,7 +1268,7 @@ export default function DoctorPortal() {
                     </table>
                   )}
 
-                  <div className="rounded-xl bg-secondary/50 p-2.5 text-[9.5px] text-muted-foreground leading-relaxed">
+                  <div className="rounded-xl bg-secondary/50 p-2.5 text-[9.5px] text-muted-foreground leading-relaxed text-left">
                     <p className="font-bold text-foreground mb-0.5">Clinical Note:</p>
                     {selectedPdf.file === "lipid_panel.pdf" ? (
                       "Total cholesterol and LDL are slightly elevated. Patient should focus on a low-fat dietary routine, reduce saturated fats, and schedule a follow-up consultation in 6-8 weeks."
@@ -1084,12 +1278,12 @@ export default function DoctorPortal() {
                   </div>
                 </div>
 
-                <div className="flex justify-between items-end border-t border-border pt-4 text-[9px] text-muted-foreground">
+                <div className="flex justify-between items-end border-t border-border pt-4 text-[9px] text-muted-foreground text-left">
                   <div>
                     <p className="font-bold text-foreground">Dr. Julian Reyes</p>
                     <p>Chief Pathologist, PalsCare Labs</p>
                   </div>
-                  <div className="text-right font-medium">
+                  <div className="text-right font-medium text-left">
                     <span className="inline-block rounded border border-accent text-accent px-1.5 py-0.5 font-bold uppercase tracking-wider text-[8px]">
                       Electronically Signed
                     </span>
@@ -1118,8 +1312,8 @@ export default function DoctorPortal() {
 
             <div className="flex-1 overflow-y-auto py-4 space-y-4 text-left">
               <section className="rounded-2xl bg-card p-4 border border-border space-y-2.5">
-                <h4 className="font-display text-xs font-bold text-primary uppercase tracking-wider">Session Details</h4>
-                <div className="grid grid-cols-2 gap-2 text-xs">
+                <h4 className="font-display text-xs font-bold text-primary uppercase tracking-wider text-left">Session Details</h4>
+                <div className="grid grid-cols-2 gap-2 text-xs text-left">
                   <div>
                     <p className="text-muted-foreground text-[10px]">Date</p>
                     <p className="font-semibold text-foreground">{format(new Date(viewingApptSummary.date), "MMM d, yyyy")}</p>
@@ -1139,7 +1333,7 @@ export default function DoctorPortal() {
                 </div>
               </section>
 
-              <section className="rounded-2xl bg-card p-4 border border-border space-y-2.5">
+              <section className="rounded-2xl bg-card p-4 border border-border space-y-2.5 text-left">
                 <h4 className="font-display text-xs font-bold text-primary uppercase tracking-wider">Clinical Notes</h4>
                 <p className="text-xs text-foreground leading-relaxed bg-secondary/40 p-3 rounded-xl">
                   {viewingApptSummary.reason === "Skin consultation" 
@@ -1151,11 +1345,11 @@ export default function DoctorPortal() {
                 </p>
               </section>
 
-              <section className="rounded-2xl bg-card p-4 border border-border space-y-2.5">
+              <section className="rounded-2xl bg-card p-4 border border-border space-y-2.5 text-left">
                 <h4 className="font-display text-xs font-bold text-primary uppercase tracking-wider font-semibold">Recommendations & Tests</h4>
-                <div className="bg-secondary/40 p-3 rounded-xl text-xs space-y-1.5">
-                  <p><span className="font-semibold text-foreground">Diagnostic Test:</span> {viewingApptSummary.reason === "ECG follow-up" ? "Lipid Profile Panel" : "Standard Diagnostic Screen"}</p>
-                  <p><span className="font-semibold text-foreground">Next Review:</span> 4 Weeks</p>
+                <div className="bg-secondary/40 p-3 rounded-xl text-xs space-y-1.5 text-left">
+                  <p><span className="font-semibold text-foreground text-left">Diagnostic Test:</span> {viewingApptSummary.reason === "ECG follow-up" ? "Lipid Profile Panel" : "Standard Diagnostic Screen"}</p>
+                  <p><span className="font-semibold text-foreground text-left">Next Review:</span> 4 Weeks</p>
                 </div>
               </section>
             </div>

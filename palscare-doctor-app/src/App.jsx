@@ -1,16 +1,9 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AppShell } from "@/components/AppShell";
-import Appointments from "./pages/Appointments.jsx";
-import DoctorDetails from "./pages/DoctorDetails.jsx";
-import FindDoctor from "./pages/FindDoctor.jsx";
-import Index from "./pages/Index.jsx";
 import NotFound from "./pages/NotFound.jsx";
-import Profile from "./pages/Profile.jsx";
-import Records from "./pages/Records.jsx";
-import Login from "./pages/Login.jsx";
+import DoctorLogin from "./pages/DoctorLogin.jsx";
 import DoctorOnboarding from "./pages/DoctorOnboarding.jsx";
 import DoctorPortal from "./pages/DoctorPortal.jsx";
 
@@ -21,17 +14,10 @@ export default function App() {
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Navigate to="/doctor/login" replace />} />
+          <Route path="/doctor/login" element={<DoctorLogin />} />
           <Route path="/doctor/onboarding" element={<DoctorOnboarding />} />
           <Route path="/doctor/portal" element={<DoctorPortal />} />
-          <Route element={<AppShell />}>
-            <Route path="/" element={<Index />} />
-            <Route path="/find" element={<FindDoctor />} />
-            <Route path="/doctor/:id" element={<DoctorDetails />} />
-            <Route path="/appointments" element={<Appointments />} />
-            <Route path="/records" element={<Records />} />
-            <Route path="/profile" element={<Profile />} />
-          </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

@@ -4,78 +4,79 @@
 
 @layer base {
   :root {
-    /* Warm off-white background, calm clinical palette */
-    --background: 40 33% 97%;
-    --foreground: 180 25% 12%;
+    /* Premium clinical slate-blue background, modern tech-forward palette */
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 180 25% 12%;
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 180 25% 12%;
+    --popover-foreground: 222 47% 11%;
 
-    /* Calm teal — trustworthy, medical */
-    --primary: 174 64% 31%;
-    --primary-foreground: 40 33% 97%;
-    --primary-soft: 174 50% 92%;
-    --primary-glow: 168 76% 42%;
+    /* Royal Cobalt — trustworthy, tech-forward, high-quality medical */
+    --primary: 222 84% 45%;
+    --primary-foreground: 210 40% 98%;
+    --primary-soft: 222 75% 95%;
+    --primary-glow: 217 91% 60%;
 
-    --secondary: 40 25% 93%;
-    --secondary-foreground: 180 25% 18%;
+    --secondary: 214 32% 91%;
+    --secondary-foreground: 222 47% 15%;
 
-    --muted: 40 20% 94%;
-    --muted-foreground: 180 8% 42%;
+    --muted: 210 20% 93%;
+    --muted-foreground: 222 15% 45%;
 
-    --accent: 24 80% 62%;
+    /* Electric Violet Accent */
+    --accent: 262 83% 58%;
     --accent-foreground: 0 0% 100%;
-    --accent-soft: 24 80% 95%;
+    --accent-soft: 262 80% 96%;
 
-    --success: 152 55% 42%;
+    --success: 142 72% 29%;
     --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 50%;
     --warning-foreground: 30 50% 12%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 346 84% 49%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 40 15% 88%;
-    --input: 40 15% 88%;
-    --ring: 174 64% 31%;
+    --border: 214 32% 89%;
+    --input: 214 32% 89%;
+    --ring: 222 84% 45%;
 
     --radius: 1.25rem;
 
-    --gradient-hero: linear-gradient(135deg, hsl(174 64% 31%) 0%, hsl(168 76% 42%) 100%);
-    --gradient-soft: linear-gradient(180deg, hsl(174 50% 96%) 0%, hsl(40 33% 97%) 100%);
-    --gradient-card: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(174 30% 98%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(222 84% 45%) 0%, hsl(262 83% 58%) 100%);
+    --gradient-soft: linear-gradient(180deg, hsl(222 75% 96%) 0%, hsl(210 40% 98%) 100%);
+    --gradient-card: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(222 40% 98%) 100%);
 
-    --shadow-sm: 0 1px 2px hsl(180 25% 12% / 0.04);
-    --shadow-md: 0 4px 16px -4px hsl(180 25% 12% / 0.08);
-    --shadow-lg: 0 12px 40px -12px hsl(174 64% 31% / 0.18);
-    --shadow-glow: 0 0 32px hsl(168 76% 42% / 0.25);
+    --shadow-sm: 0 1px 2px hsl(222 47% 11% / 0.04);
+    --shadow-md: 0 4px 16px -4px hsl(222 47% 11% / 0.08);
+    --shadow-lg: 0 12px 40px -12px hsl(222 84% 45% / 0.18);
+    --shadow-glow: 0 0 32px hsl(262 83% 58% / 0.25);
 
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .dark {
-    --background: 180 25% 8%;
-    --foreground: 40 33% 95%;
-    --card: 180 22% 11%;
-    --card-foreground: 40 33% 95%;
-    --popover: 180 22% 11%;
-    --popover-foreground: 40 33% 95%;
-    --primary: 168 76% 52%;
-    --primary-foreground: 180 25% 8%;
-    --primary-soft: 174 30% 18%;
-    --secondary: 180 18% 16%;
-    --secondary-foreground: 40 33% 95%;
-    --muted: 180 18% 16%;
-    --muted-foreground: 180 8% 65%;
-    --accent: 24 80% 62%;
-    --accent-foreground: 180 25% 8%;
-    --border: 180 18% 18%;
-    --input: 180 18% 18%;
-    --ring: 168 76% 52%;
+    --background: 222 47% 6%;
+    --foreground: 210 40% 98%;
+    --card: 222 40% 9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 40% 9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 6%;
+    --primary-soft: 222 30% 16%;
+    --secondary: 222 25% 14%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 222 25% 14%;
+    --muted-foreground: 222 10% 65%;
+    --accent: 262 83% 65%;
+    --accent-foreground: 222 47% 6%;
+    --border: 222 25% 16%;
+    --input: 222 25% 16%;
+    --ring: 217 91% 60%;
   }
 }
 
