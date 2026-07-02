@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Premium clinical slate-blue background, modern tech-forward palette */
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Royal Cobalt — trustworthy, tech-forward, high-quality medical */
+    --primary: 222 84% 45%;
+    --primary-foreground: 210 40% 98%;
+    --primary-soft: 222 75% 95%;
+    --primary-glow: 217 91% 60%;
+
+    --secondary: 214 32% 91%;
+    --secondary-foreground: 222 47% 15%;
+
+    --muted: 210 20% 93%;
+    --muted-foreground: 222 15% 45%;
+
+    /* Electric Violet Accent */
+    --accent: 262 83% 58%;
+    --accent-foreground: 0 0% 100%;
+    --accent-soft: 262 80% 96%;
+
+    --success: 142 72% 29%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 30 50% 12%;
+
+    --destructive: 346 84% 49%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 89%;
+    --input: 214 32% 89%;
+    --ring: 222 84% 45%;
+
+    --radius: 1.25rem;
+
+    --gradient-hero: linear-gradient(135deg, hsl(222 84% 45%) 0%, hsl(262 83% 58%) 100%);
+    --gradient-soft: linear-gradient(180deg, hsl(222 75% 96%) 0%, hsl(210 40% 98%) 100%);
+    --gradient-card: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(222 40% 98%) 100%);
+
+    --shadow-sm: 0 1px 2px hsl(222 47% 11% / 0.04);
+    --shadow-md: 0 4px 16px -4px hsl(222 47% 11% / 0.08);
+    --shadow-lg: 0 12px 40px -12px hsl(222 84% 45% / 0.18);
+    --shadow-glow: 0 0 32px hsl(262 83% 58% / 0.25);
+
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dark {
+    --background: 222 47% 6%;
+    --foreground: 210 40% 98%;
+    --card: 222 40% 9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 40% 9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 6%;
+    --primary-soft: 222 30% 16%;
+    --secondary: 222 25% 14%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 222 25% 14%;
+    --muted-foreground: 222 10% 65%;
+    --accent: 262 83% 65%;
+    --accent-foreground: 222 47% 6%;
+    --border: 222 25% 16%;
+    --input: 222 25% 16%;
+    --ring: 217 91% 60%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  html { -webkit-tap-highlight-color: transparent; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+  h1, h2, h3, .font-display {
+    font-family: 'Fraunces', Georgia, serif;
+    font-optical-sizing: auto;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer utilities {
+  .gradient-hero { background: var(--gradient-hero); }
+  .gradient-soft { background: var(--gradient-soft); }
+  .gradient-card { background: var(--gradient-card); }
+  .shadow-soft { box-shadow: var(--shadow-md); }
+  .shadow-elevated { box-shadow: var(--shadow-lg); }
+  .shadow-glow { box-shadow: var(--shadow-glow); }
+  .safe-bottom { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+}
