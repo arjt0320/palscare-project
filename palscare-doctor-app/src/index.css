@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Warm off-white background, calm clinical palette */
+    --background: 40 33% 97%;
+    --foreground: 180 25% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 180 25% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 180 25% 12%;
+
+    /* Calm teal — trustworthy, medical */
+    --primary: 174 64% 31%;
+    --primary-foreground: 40 33% 97%;
+    --primary-soft: 174 50% 92%;
+    --primary-glow: 168 76% 42%;
+
+    --secondary: 40 25% 93%;
+    --secondary-foreground: 180 25% 18%;
+
+    --muted: 40 20% 94%;
+    --muted-foreground: 180 8% 42%;
+
+    --accent: 24 80% 62%;
+    --accent-foreground: 0 0% 100%;
+    --accent-soft: 24 80% 95%;
+
+    --success: 152 55% 42%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 30 50% 12%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 40 15% 88%;
+    --input: 40 15% 88%;
+    --ring: 174 64% 31%;
+
+    --radius: 1.25rem;
+
+    --gradient-hero: linear-gradient(135deg, hsl(174 64% 31%) 0%, hsl(168 76% 42%) 100%);
+    --gradient-soft: linear-gradient(180deg, hsl(174 50% 96%) 0%, hsl(40 33% 97%) 100%);
+    --gradient-card: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(174 30% 98%) 100%);
+
+    --shadow-sm: 0 1px 2px hsl(180 25% 12% / 0.04);
+    --shadow-md: 0 4px 16px -4px hsl(180 25% 12% / 0.08);
+    --shadow-lg: 0 12px 40px -12px hsl(174 64% 31% / 0.18);
+    --shadow-glow: 0 0 32px hsl(168 76% 42% / 0.25);
+
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dark {
+    --background: 180 25% 8%;
+    --foreground: 40 33% 95%;
+    --card: 180 22% 11%;
+    --card-foreground: 40 33% 95%;
+    --popover: 180 22% 11%;
+    --popover-foreground: 40 33% 95%;
+    --primary: 168 76% 52%;
+    --primary-foreground: 180 25% 8%;
+    --primary-soft: 174 30% 18%;
+    --secondary: 180 18% 16%;
+    --secondary-foreground: 40 33% 95%;
+    --muted: 180 18% 16%;
+    --muted-foreground: 180 8% 65%;
+    --accent: 24 80% 62%;
+    --accent-foreground: 180 25% 8%;
+    --border: 180 18% 18%;
+    --input: 180 18% 18%;
+    --ring: 168 76% 52%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  html { -webkit-tap-highlight-color: transparent; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+  h1, h2, h3, .font-display {
+    font-family: 'Fraunces', Georgia, serif;
+    font-optical-sizing: auto;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer utilities {
+  .gradient-hero { background: var(--gradient-hero); }
+  .gradient-soft { background: var(--gradient-soft); }
+  .gradient-card { background: var(--gradient-card); }
+  .shadow-soft { box-shadow: var(--shadow-md); }
+  .shadow-elevated { box-shadow: var(--shadow-lg); }
+  .shadow-glow { box-shadow: var(--shadow-glow); }
+  .safe-bottom { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+}

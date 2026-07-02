@@ -1,0 +1,775 @@
+{
+	"info": {
+		"_postman_id": "b9a527c2-19e3-46fa-bb28-1ef617d91d65",
+		"name": "PalsCare Backend API Collection",
+		"description": "Collection of all microservice endpoints for PalsCare. Requires setting up headers or tokens.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "User Service",
+			"item": [
+				{
+					"name": "Authentication & Registration",
+					"item": [
+						{
+							"name": "Register User (Patient)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Id",
+										"value": "okta_pat_123",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Role",
+										"value": "PATIENT",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Email",
+										"value": "patient@test.com",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"userType\": \"PATIENT\"\n}"
+								},
+								"url": {
+									"raw": "{{user_service_url}}/api/v1/auth/register",
+									"host": [
+										"{{user_service_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"auth",
+										"register"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Register User (Doctor)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Id",
+										"value": "okta_doc_456",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Role",
+										"value": "DOCTOR",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Email",
+										"value": "doctor@test.com",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"userType\": \"DOCTOR\"\n}"
+								},
+								"url": {
+									"raw": "{{user_service_url}}/api/v1/auth/register",
+									"host": [
+										"{{user_service_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"auth",
+										"register"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Patient Management",
+					"item": [
+						{
+							"name": "Save Patient Profile",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Id",
+										"value": "okta_pat_123",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Role",
+										"value": "PATIENT",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Email",
+										"value": "patient@test.com",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"John Doe\",\n    \"phone\": \"+919876543210\",\n    \"dob\": \"1995-10-12\",\n    \"bloodGroup\": \"O+\"\n}"
+								},
+								"url": {
+									"raw": "{{user_service_url}}/api/v1/patients/profile",
+									"host": [
+										"{{user_service_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"patients",
+										"profile"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Patient Profile",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "X-User-Id",
+										"value": "okta_pat_123",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Role",
+										"value": "PATIENT",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Email",
+										"value": "patient@test.com",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{user_service_url}}/api/v1/patients/profile",
+									"host": [
+										"{{user_service_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"patients",
+										"profile"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Approved Doctors Directory",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "X-User-Id",
+										"value": "okta_pat_123",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Role",
+										"value": "PATIENT",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Email",
+										"value": "patient@test.com",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{user_service_url}}/api/v1/patients/doctors?specialty=Cardiology",
+									"host": [
+										"{{user_service_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"patients",
+										"doctors"
+									],
+									"query": [
+										{
+											"key": "specialty",
+											"value": "Cardiology"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Doctor Management",
+					"item": [
+						{
+							"name": "Doctor Onboarding",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Id",
+										"value": "okta_doc_456",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Role",
+										"value": "DOCTOR",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Email",
+										"value": "doctor@test.com",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Dr. Sarah Smith\",\n    \"specialty\": \"Cardiology\",\n    \"registrationNumber\": \"REG98765\",\n    \"university\": \"Harvard Medical\",\n    \"experienceYears\": 12,\n    \"bio\": \"Cardiologist with 12 years of experience.\"\n}"
+								},
+								"url": {
+									"raw": "{{user_service_url}}/api/v1/doctors/onboarding",
+									"host": [
+										"{{user_service_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"doctors",
+										"onboarding"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Doctor Profile",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "X-User-Id",
+										"value": "okta_doc_456",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Role",
+										"value": "DOCTOR",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Email",
+										"value": "doctor@test.com",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{user_service_url}}/api/v1/doctors/profile",
+									"host": [
+										"{{user_service_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"doctors",
+										"profile"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Internal Doctor ID",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "X-User-Id",
+										"value": "okta_doc_456",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Role",
+										"value": "DOCTOR",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Email",
+										"value": "doctor@test.com",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{user_service_url}}/api/v1/doctors/internal/id",
+									"host": [
+										"{{user_service_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"doctors",
+										"internal",
+										"id"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Doctor & Slot Service",
+			"item": [
+				{
+					"name": "Chamber Management",
+					"item": [
+						{
+							"name": "Register Chamber",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Id",
+										"value": "okta_doc_456",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Role",
+										"value": "DOCTOR",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Email",
+										"value": "doctor@test.com",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Chembur Chamber\",\n    \"address\": \"123 Main St, Mumbai\"\n}"
+								},
+								"url": {
+									"raw": "{{doctor_slot_service_url}}/api/v1/doctors/chambers",
+									"host": [
+										"{{doctor_slot_service_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"doctors",
+										"chambers"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Chambers",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "X-User-Id",
+										"value": "okta_doc_456",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Role",
+										"value": "DOCTOR",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Email",
+										"value": "doctor@test.com",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{doctor_slot_service_url}}/api/v1/doctors/chambers",
+									"host": [
+										"{{doctor_slot_service_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"doctors",
+										"chambers"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Slot Management",
+					"item": [
+						{
+							"name": "Generate Slot",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Id",
+										"value": "okta_doc_456",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Role",
+										"value": "DOCTOR",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Email",
+										"value": "doctor@test.com",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"slotDay\": \"Monday\",\n    \"startTime\": \"09:00:00\",\n    \"slotMode\": \"CHAMBER\",\n    \"chamberId\": 1\n}"
+								},
+								"url": {
+									"raw": "{{doctor_slot_service_url}}/api/v1/doctors/slots/generate",
+									"host": [
+										"{{doctor_slot_service_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"doctors",
+										"slots",
+										"generate"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Slots (Doctor View)",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "X-User-Id",
+										"value": "okta_doc_456",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Role",
+										"value": "DOCTOR",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Email",
+										"value": "doctor@test.com",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{doctor_slot_service_url}}/api/v1/doctors/slots",
+									"host": [
+										"{{doctor_slot_service_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"doctors",
+										"slots"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Slot",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "X-User-Id",
+										"value": "okta_doc_456",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Role",
+										"value": "DOCTOR",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Email",
+										"value": "doctor@test.com",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{doctor_slot_service_url}}/api/v1/doctors/slots/1",
+									"host": [
+										"{{doctor_slot_service_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"doctors",
+										"slots",
+										"1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Available Slots (Patient View)",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "X-User-Id",
+										"value": "okta_pat_123",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Role",
+										"value": "PATIENT",
+										"type": "text"
+									},
+									{
+										"key": "X-User-Email",
+										"value": "patient@test.com",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{doctor_slot_service_url}}/api/v1/patients/doctors/1/slots",
+									"host": [
+										"{{doctor_slot_service_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"patients",
+										"doctors",
+										"1",
+										"slots"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Booking & Appointment Service",
+			"item": [
+				{
+					"name": "Book Appointment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "X-User-Id",
+								"value": "okta_pat_123",
+								"type": "text"
+							},
+							{
+								"key": "X-User-Role",
+								"value": "PATIENT",
+								"type": "text"
+							},
+							{
+								"key": "X-User-Email",
+								"value": "patient@test.com",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"slotId\": 1,\n    \"reason\": \"Weekly General Checkup\",\n    \"paymentTransactionId\": \"tx_booking_987654\"\n}"
+						},
+						"url": {
+							"raw": "{{booking_service_url}}/api/v1/patients/appointments",
+							"host": [
+								"{{booking_service_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"patients",
+								"appointments"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Appointment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-User-Id",
+								"value": "okta_pat_123",
+								"type": "text"
+							},
+							{
+								"key": "X-User-Role",
+								"value": "PATIENT",
+								"type": "text"
+							},
+							{
+								"key": "X-User-Email",
+								"value": "patient@test.com",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{booking_service_url}}/api/v1/patients/appointments/1/cancel",
+							"host": [
+								"{{booking_service_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"patients",
+								"appointments",
+								"1",
+								"cancel"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Appointments",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-User-Id",
+								"value": "okta_pat_123",
+								"type": "text"
+							},
+							{
+								"key": "X-User-Role",
+								"value": "PATIENT",
+								"type": "text"
+							},
+							{
+								"key": "X-User-Email",
+								"value": "patient@test.com",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{booking_service_url}}/api/v1/patients/appointments",
+							"host": [
+								"{{booking_service_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"patients",
+								"appointments"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "user_service_url",
+			"value": "http://localhost:8081",
+			"type": "string"
+		},
+		{
+			"key": "doctor_slot_service_url",
+			"value": "http://localhost:8082",
+			"type": "string"
+		},
+		{
+			"key": "booking_service_url",
+			"value": "http://localhost:8083",
+			"type": "string"
+		}
+	]
+}
