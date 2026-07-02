@@ -1,7 +1,6 @@
 FROM maven:3.8.5-openjdk-17-slim AS build
 WORKDIR /app
-COPY pom.xml .
-COPY user-service user-service
+COPY . .
 RUN mvn -pl user-service package -DskipTests
 
 FROM eclipse-temurin:17-jre-alpine

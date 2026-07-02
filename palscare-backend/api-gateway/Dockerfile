@@ -1,7 +1,6 @@
 FROM maven:3.8.5-openjdk-17-slim AS build
 WORKDIR /app
-COPY pom.xml .
-COPY api-gateway api-gateway
+COPY . .
 RUN mvn -pl api-gateway package -DskipTests
 
 FROM eclipse-temurin:17-jre-alpine
