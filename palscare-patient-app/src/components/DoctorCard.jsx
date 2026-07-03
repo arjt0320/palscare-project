@@ -9,7 +9,7 @@ export function DoctorCard({ doctor }) {
     >
       <div className="flex gap-4">
         <img
-          src={doctor.photo}
+          src={doctor.photo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(doctor.name || "Doctor")}`}
           alt={doctor.name}
           loading="lazy"
           width={96}

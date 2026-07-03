@@ -196,7 +196,7 @@ export default function DoctorDetails() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <img
-          src={doctor.photo}
+          src={doctor.photo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(doctor.name || "Doctor")}`}
           alt={doctor.name}
           className="absolute -bottom-12 left-1/2 h-28 w-28 -translate-x-1/2 rounded-3xl object-cover ring-4 ring-background shadow-elevated"
         />

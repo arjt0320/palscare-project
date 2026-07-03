@@ -46,7 +46,7 @@ function AppointmentCard({ appointment, onCancelClick, onReschedule }) {
   return (
     <article className="rounded-3xl bg-card p-4 shadow-soft">
       <div className="flex items-start gap-3">
-        <img src={doctorPhoto} alt={doctorName} className="h-14 w-14 rounded-2xl object-cover ring-2 ring-primary-soft" />
+        <img src={doctorPhoto || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(doctorName || "Doctor")}`} alt={doctorName} className="h-14 w-14 rounded-2xl object-cover ring-2 ring-primary-soft" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
