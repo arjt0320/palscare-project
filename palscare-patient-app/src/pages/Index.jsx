@@ -247,7 +247,7 @@ export default function Index() {
         {recentVisit && (
           <div className="mt-3 rounded-3xl gradient-card p-4 shadow-soft">
             <p className="text-xs uppercase tracking-wider text-muted-foreground">Recent visit</p>
-            <p className="mt-2 font-display text-lg font-semibold">{findDoctor(recentVisit.doctorId).name}</p>
+            <p className="mt-2 font-display text-lg font-semibold">{recentVisit.doctorName}</p>
             <p className="text-sm text-muted-foreground">
               {recentVisit.reason || "Follow-up care"} • {format(new Date(recentVisit.date), "MMM d, yyyy")}
             </p>

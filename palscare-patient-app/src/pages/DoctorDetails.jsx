@@ -83,15 +83,13 @@ export default function DoctorDetails() {
         setDoctor(docObj);
         setSelectedMode(docObj.modes[0]);
       } else {
-        const fallback = findDoctor(id);
-        setDoctor(fallback);
-        setSelectedMode(fallback.modes[0]);
+        toast.error("Doctor not found.");
+        navigate("/find");
       }
     }).catch(err => {
-      console.error("Failed to load doctor from database, falling back to mock", err);
-      const fallback = findDoctor(id);
-      setDoctor(fallback);
-      setSelectedMode(fallback.modes[0]);
+      console.error("Failed to load doctor from database", err);
+      toast.error("Failed to load doctor details.");
+      navigate("/find");
     });
   }, [id]);
 
