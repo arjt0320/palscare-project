@@ -16,12 +16,19 @@ function getHeaders(role = "PATIENT") {
     }
   }
 
-  return {
+  const headers = {
     "Content-Type": "application/json",
     "X-User-Id": userId,
     "X-User-Role": role,
     "X-User-Email": email
   };
+
+  const token = localStorage.getItem("palscare-token");
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  return headers;
 }
 
 export async function apiRequest(path, method = "GET", body = null, role = "PATIENT") {
