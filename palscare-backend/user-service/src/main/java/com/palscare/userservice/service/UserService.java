@@ -18,15 +18,23 @@ public class UserService {
     private final UserRepository userRepository;
     private final PatientRepository patientRepository;
     private final DoctorRepository doctorRepository;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     @Transactional
-    public User registerUser(String oktaUid, String email, UserType userType) {
-        if (userRepository.existsById(oktaUid)) {
-            throw new IllegalArgumentException("User with UID already exists");
+    public User registerUser(String name, String email, String phone, String password, UserType userType) {
+        if (userRepository.findByEmailAndUserType(email, userType).isPresent()) {
+            throw new IllegalArgumentException("User with this email is already registered as a " + userType.name().toLowerCase());
         }
+        if (phone != null && !phone.trim().isEmpty() && userRepository.findByPhoneAndUserType(phone, userType).isPresent()) {
+            throw new IllegalArgumentException("User with this phone number is already registered as a " + userType.name().toLowerCase());
+        }
+
+        String hashedPassword = passwordEncoder.encode(password);
+
         User user = User.builder()
-                .oktaUid(oktaUid)
                 .email(email)
+                .phone(phone)
+                .password(hashedPassword)
                 .userType(userType)
                 .build();
         User savedUser = userRepository.save(user);
@@ -34,15 +42,16 @@ public class UserService {
         if (userType == UserType.PATIENT) {
             Patient patient = Patient.builder()
                     .user(savedUser)
-                    .name("New Patient")
+                    .name(name)
+                    .phone(phone)
                     .build();
             patientRepository.save(patient);
         } else if (userType == UserType.DOCTOR) {
             Doctor doctor = Doctor.builder()
                     .user(savedUser)
-                    .name("New Doctor")
+                    .name(name)
                     .specialty("General Practice")
-                    .registrationNumber("REG-" + oktaUid.substring(Math.max(0, oktaUid.length() - 8)))
+                    .registrationNumber("REG-" + savedUser.getOktaUid().substring(Math.max(0, savedUser.getOktaUid().length() - 8)))
                     .verificationStatus(VerificationStatus.PENDING)
                     .build();
             doctorRepository.save(doctor);
@@ -197,7 +206,7 @@ public class UserService {
                 .id(patient.getId())
                 .email(patient.getUser().getEmail())
                 .name(patient.getName())
-                .phone(patient.getPhone())
+                .phone(patient.getPhone() != null ? patient.getPhone() : patient.getUser().getPhone())
                 .dob(patient.getDob())
                 .bloodGroup(patient.getBloodGroup())
                 .build();
@@ -213,6 +222,7 @@ public class UserService {
                 .university(doctor.getUniversity())
                 .experienceYears(doctor.getExperienceYears())
                 .bio(doctor.getBio())
+                .phone(doctor.getUser().getPhone())
                 .verificationStatus(doctor.getVerificationStatus())
                 .build();
     }

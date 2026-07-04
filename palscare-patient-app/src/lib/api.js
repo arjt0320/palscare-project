@@ -1,6 +1,6 @@
 const GATEWAY_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8080";
 
-function getHeaders(role = "PATIENT") {
+function getHeaders(path, role = "PATIENT") {
   const current = localStorage.getItem("palscare-current-user");
   let userId = role === "PATIENT" ? "okta_pat_123" : "okta_doc_456";
   let email = role === "PATIENT" ? "patient@test.com" : "doctor@test.com";
@@ -24,7 +24,7 @@ function getHeaders(role = "PATIENT") {
   };
 
   const token = localStorage.getItem("palscare-token");
-  if (token) {
+  if (token && path && !path.startsWith("/api/v1/auth/")) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
@@ -34,7 +34,7 @@ function getHeaders(role = "PATIENT") {
 export async function apiRequest(path, method = "GET", body = null, role = "PATIENT") {
   const options = {
     method,
-    headers: getHeaders(role)
+    headers: getHeaders(path, role)
   };
   if (body) {
     options.body = JSON.stringify(body);

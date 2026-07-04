@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, Cake, ChevronRight, Droplet, Bell, Lock, Mail, Phone, ShieldCheck, Edit3, X, Save, LogOut } from "lucide-react";
-import { patient as importedPatient, updatePatientProfile, logoutUser, apiGetProfile, apiSaveProfile } from "@/lib/mockData";
+import { apiRequest } from "@/lib/api";
 import { toast } from "sonner";
 
 function Row({ icon, label, value }) {
@@ -27,16 +27,16 @@ function SettingRow({ icon, label }) {
 }
 
 export default function Profile() {
-  const [profileData, setProfileData] = useState(() => importedPatient);
-  const patient = profileData; // shadows imported patient proxy
+  const [profileData, setProfileData] = useState(null);
+  const patient = profileData || { name: "User", initials: "U", email: "", phone: "", dob: "", bloodGroup: "", allergies: [] };
 
   useEffect(() => {
-    apiGetProfile().then((data) => {
-      const updated = updatePatientProfile(data);
-      if (updated) {
-        setProfileData({ ...updated });
-      }
-    }).catch(err => console.error("Failed to load patient from server", err));
+    apiRequest("/api/v1/patients/profile", "GET", null, "PATIENT")
+      .then((data) => {
+        const initials = data.name ? data.name.split(" ").map(n => n[0]).join("").toUpperCase() : "U";
+        setProfileData({ ...data, initials, allergies: [] });
+      })
+      .catch(err => console.error("Failed to load patient from server", err));
   }, []);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -60,7 +60,8 @@ export default function Profile() {
   const joinDate = "Patient since 2023";
 
   const handleLogout = () => {
-    logoutUser();
+    localStorage.removeItem("palscare-token");
+    localStorage.removeItem("palscare-current-user");
     toast.success("Logged out successfully");
     navigate("/login");
   };
@@ -87,15 +88,16 @@ export default function Profile() {
       return;
     }
 
-    apiSaveProfile({ name, phone, dob, bloodGroup })
+    apiRequest("/api/v1/patients/profile", "POST", { name, phone, dob, bloodGroup }, "PATIENT")
       .then((updated) => {
-        setProfileData({ ...updated });
+        const initials = updated.name ? updated.name.split(" ").map(n => n[0]).join("").toUpperCase() : "U";
+        setProfileData({ ...updated, initials, allergies: [] });
         toast.success("Profile updated successfully!");
         setIsEditing(false);
       })
       .catch((err) => {
         console.error(err);
-        toast.error("Failed to update profile.");
+        toast.error("Failed to update profile: " + err.message);
       });
   };
 

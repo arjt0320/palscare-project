@@ -15,5 +15,6 @@ public class DoctorResponse {
     private String university;
     private Integer experienceYears;
     private String bio;
+    private String phone;
     private VerificationStatus verificationStatus;
 }

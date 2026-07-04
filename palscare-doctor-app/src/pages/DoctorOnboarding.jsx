@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Stethoscope, ShieldCheck, User, Mail, GraduationCap, FileText, ChevronRight, Upload, X } from "lucide-react";
-import { registerDoctor, specialties, apiRegisterDoctor } from "@/lib/mockData";
+import { specialties } from "@/lib/mockData";
+import { apiRequest } from "@/lib/api";
 import { toast } from "sonner";
 
 export default function DoctorOnboarding() {
@@ -21,6 +22,30 @@ export default function DoctorOnboarding() {
   const [isLoading, setIsLoading] = useState(false);
 
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const profile = await apiRequest("/api/v1/doctors/profile", "GET", null, "DOCTOR");
+        if (profile) {
+          if (profile.name && profile.name !== "New Doctor") {
+            setName(profile.name.replace("Dr. ", ""));
+          } else {
+            const cachedUser = localStorage.getItem("palscare-current-user");
+            if (cachedUser) {
+              const parsed = JSON.parse(cachedUser);
+              setName(parsed.name || "");
+            }
+          }
+          setEmail(profile.email || "");
+          setPhone(profile.phone || "");
+        }
+      } catch (err) {
+        console.error("Failed to load doctor profile details:", err);
+      }
+    };
+    fetchUserData();
+  }, []);
 
   const handleFileChange = (e) => {
     const selected = Array.from(e.target.files);
@@ -56,35 +81,24 @@ export default function DoctorOnboarding() {
 
     setIsLoading(true);
 
-    apiRegisterDoctor({
-      name: `Dr. ${name}`,
+    apiRequest("/api/v1/doctors/onboarding", "POST", {
+      name: name.startsWith("Dr. ") ? name : `Dr. ${name}`,
       specialty,
-      email,
-      phone,
       registrationNumber: regNo,
       university,
-      experience: parseInt(experience, 10) || 1,
-      about: bio || `Dedicated specialist in ${specialty}.`,
-      feeUsd: parseInt(fee, 10) || 60,
-      clinic: "Global Health Center",
-      distanceKm: 2.5,
-      modes: ["in-person"],
-      photo: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?q=80&w=256&h=256&fit=crop"
-    })
+      experienceYears: parseInt(experience, 10) || 1,
+      bio: bio || `Dedicated specialist in ${specialty}.`
+    }, "DOCTOR")
       .then((res) => {
         setIsLoading(false);
-        if (res.success) {
-          toast.success("Onboarding submitted!", {
-            description: "Your credentials have been uploaded. Verification is pending."
-          });
-          navigate("/doctor/portal");
-        } else {
-          toast.error("Failed to submit onboarding.");
-        }
+        toast.success("Onboarding submitted!", {
+          description: "Your credentials have been uploaded. Verification is pending."
+        });
+        navigate("/doctor/portal");
       })
       .catch((err) => {
         setIsLoading(false);
-        toast.error("Failed to submit onboarding: API error.");
+        toast.error("Failed to submit onboarding: " + err.message);
         console.error(err);
       });
   };

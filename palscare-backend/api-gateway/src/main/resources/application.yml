@@ -25,12 +25,7 @@ spring:
             - Path=/api/v1/auth/**, /api/v1/patients/profile, /api/v1/patients/doctors, /api/v1/patients/internal/**, /api/v1/doctors/profile, /api/v1/doctors/onboarding, /api/v1/doctors/internal/**
           filters:
             - RemoveRequestHeader=Cookie
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: https://dev-z6gzatrmm3mxqq8d.us.auth0.com/
-          jwk-set-uri: https://dev-z6gzatrmm3mxqq8d.us.auth0.com/.well-known/jwks.json
+  # Using local symmetric JWT validation in SecurityConfig
 
 eureka:
   client:
