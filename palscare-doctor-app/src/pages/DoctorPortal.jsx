@@ -77,7 +77,7 @@ export default function DoctorPortal() {
   const [slotDay, setSlotDay] = useState("Monday");
   const [slotStart, setSlotStart] = useState("09:00 AM");
   const [slotDuration, setSlotDuration] = useState("30");
-  const [slotType, setSlotType] = useState("video"); // "video" or "chamber"
+  const [slotType, setSlotType] = useState("chamber"); // "chamber" only since video is disabled
   const [selectedChamber, setSelectedChamber] = useState("");
   
   // Profile States
@@ -735,32 +735,11 @@ export default function DoctorPortal() {
                   Define Availability Template
                 </h3>
                 
-                {/* Mode Select: Video vs Chamber */}
+                {/* Consult Mode: forced to chamber */}
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase font-bold text-muted-foreground block">Consult Mode</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setSlotType("video")}
-                      className={`rounded-xl py-2 text-xs font-semibold border transition ${
-                        slotType === "video" 
-                          ? "bg-primary-soft text-primary border-primary" 
-                          : "bg-background text-muted-foreground border-border"
-                      }`}
-                    >
-                      Video Consult
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSlotType("chamber")}
-                      className={`rounded-xl py-2 text-xs font-semibold border transition ${
-                        slotType === "chamber" 
-                          ? "bg-accent-soft text-accent border-accent" 
-                          : "bg-background text-muted-foreground border-border"
-                      }`}
-                    >
-                      Chamber Visit
-                    </button>
+                  <div className="rounded-xl bg-accent-soft text-accent border border-accent/20 p-2 text-center text-xs font-semibold">
+                    Clinic Chamber Visit
                   </div>
                 </div>
 
@@ -869,11 +848,7 @@ export default function DoctorPortal() {
                               <div>
                                 <p className="font-semibold text-foreground">{s.time}</p>
                                 <p className="text-muted-foreground text-[10px]">
-                                  {s.mode === "video" ? (
-                                    <span className="text-primary font-medium">Video Consult</span>
-                                  ) : (
-                                    <span className="text-accent font-medium">Chamber: {s.chamberName}</span>
-                                  )}
+                                  <span className="text-accent font-medium">Chamber: {s.chamberName || "Clinic"}</span>
                                 </p>
                               </div>
                               <div className="flex items-center gap-2">

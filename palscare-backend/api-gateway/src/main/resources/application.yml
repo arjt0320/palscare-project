@@ -8,19 +8,19 @@ spring:
     gateway:
       routes:
         - id: doctor-slot-service
-          uri: lb://doctor-slot-service
+          uri: ${DOCTOR_SLOT_SERVICE_URL:lb://doctor-slot-service}
           predicates:
             - Path=/api/v1/doctors/chambers, /api/v1/doctors/chambers/**, /api/v1/doctors/slots, /api/v1/doctors/slots/**, /api/v1/patients/doctors/*/slots
           filters:
             - RemoveRequestHeader=Cookie
         - id: booking-service
-          uri: lb://booking-service
+          uri: ${BOOKING_SERVICE_URL:lb://booking-service}
           predicates:
             - Path=/api/v1/patients/appointments, /api/v1/patients/appointments/**
           filters:
             - RemoveRequestHeader=Cookie
         - id: user-service
-          uri: lb://user-service
+          uri: ${USER_SERVICE_URL:lb://user-service}
           predicates:
             - Path=/api/v1/auth/**, /api/v1/patients/profile, /api/v1/patients/doctors, /api/v1/patients/internal/**, /api/v1/doctors/profile, /api/v1/doctors/onboarding, /api/v1/doctors/internal/**
           filters:
@@ -29,9 +29,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          # Use placeholder issuer URI. For local testing, validation can be mocked or pointed to real Okta client
-          issuer-uri: https://dev-placeholder.okta.com/oauth2/default
-          jwk-set-uri: https://dev-placeholder.okta.com/oauth2/default/v1/keys
+          issuer-uri: https://dev-z6gzatrmm3mxqq8d.us.auth0.com/
+          jwk-set-uri: https://dev-z6gzatrmm3mxqq8d.us.auth0.com/.well-known/jwks.json
 
 eureka:
   client:

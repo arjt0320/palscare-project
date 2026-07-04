@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Bell, CalendarDays, ChevronRight, FileHeart, Pill, Plus, CheckCircle, Calendar, X, BellRing } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Bell, CalendarDays, ChevronRight, FileHeart, Pill, Plus, CheckCircle, Calendar, X, BellRing, Search } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { DoctorCard } from "@/components/DoctorCard";
 import { format } from "date-fns";
 import { findDoctor, apiGetProfile, apiGetAppointments, apiGetDoctors, specialties, apiGetReminders, apiDismissReminder } from "@/lib/mockData";
@@ -8,6 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { toast } from "sonner";
 
 export default function Index() {
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
   const [showNotifications, setShowNotifications] = useState(false);
   const [reminders, setReminders] = useState([]);
   const [profileName, setProfileName] = useState("Patient");
@@ -115,6 +117,13 @@ export default function Index() {
 
   const unreadCount = reminders.length;
 
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/find?query=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
   return (
     <div className="animate-fade-up">
       <header className="gradient-soft px-5 pb-6 pt-10">
@@ -137,6 +146,19 @@ export default function Index() {
             )}
           </button>
         </div>
+
+        {/* Dashboard Search Bar */}
+        <form onSubmit={handleSearchSubmit} className="mt-5 flex items-center gap-2 rounded-2xl bg-card px-4 py-3 shadow-soft border border-border">
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search doctor, clinic, condition…"
+            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          />
+          <button type="submit" className="hidden" />
+        </form>
 
         {nextAppointment && nextDoctor ? (
           <Link

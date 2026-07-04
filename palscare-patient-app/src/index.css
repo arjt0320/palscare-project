@@ -103,4 +103,12 @@
   .shadow-elevated { box-shadow: var(--shadow-lg); }
   .shadow-glow { box-shadow: var(--shadow-glow); }
   .safe-bottom { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+
+  @keyframes scan {
+    0%, 100% { top: 0%; }
+    50% { top: 100%; }
+  }
+  .animate-scan-line {
+    animation: scan 2s linear infinite;
+  }
 }

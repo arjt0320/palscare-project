@@ -29,20 +29,69 @@ public class UserService {
                 .email(email)
                 .userType(userType)
                 .build();
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        if (userType == UserType.PATIENT) {
+            Patient patient = Patient.builder()
+                    .user(savedUser)
+                    .name("New Patient")
+                    .build();
+            patientRepository.save(patient);
+        } else if (userType == UserType.DOCTOR) {
+            Doctor doctor = Doctor.builder()
+                    .user(savedUser)
+                    .name("New Doctor")
+                    .specialty("General Practice")
+                    .registrationNumber("REG-" + oktaUid.substring(Math.max(0, oktaUid.length() - 8)))
+                    .verificationStatus(VerificationStatus.PENDING)
+                    .build();
+            doctorRepository.save(doctor);
+        }
+
+        return savedUser;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PatientResponse getPatientProfile(String oktaUid) {
         Patient patient = patientRepository.findByUserOktaUid(oktaUid)
-                .orElseThrow(() -> new IllegalArgumentException("Patient profile not found"));
+                .orElseGet(() -> {
+                    User user = userRepository.findById(oktaUid)
+                            .orElseGet(() -> {
+                                User newUser = User.builder()
+                                        .oktaUid(oktaUid)
+                                        .email(oktaUid + "@test.com")
+                                        .userType(UserType.PATIENT)
+                                        .build();
+                                return userRepository.save(newUser);
+                            });
+                    Patient p = Patient.builder()
+                            .user(user)
+                            .name("New Patient")
+                            .build();
+                    return patientRepository.save(p);
+                });
         return mapToPatientResponse(patient);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public Long getPatientId(String oktaUid) {
         return patientRepository.findByUserOktaUid(oktaUid)
-                .orElseThrow(() -> new IllegalArgumentException("Patient profile not found"))
+                .orElseGet(() -> {
+                    User user = userRepository.findById(oktaUid)
+                            .orElseGet(() -> {
+                                User newUser = User.builder()
+                                        .oktaUid(oktaUid)
+                                        .email(oktaUid + "@test.com")
+                                        .userType(UserType.PATIENT)
+                                        .build();
+                                return userRepository.save(newUser);
+                            });
+                    Patient p = Patient.builder()
+                            .user(user)
+                            .name("New Patient")
+                            .build();
+                    return patientRepository.save(p);
+                })
                 .getId();
     }
 
@@ -68,17 +117,53 @@ public class UserService {
         return mapToPatientResponse(saved);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public DoctorResponse getDoctorProfile(String oktaUid) {
         Doctor doctor = doctorRepository.findByUserOktaUid(oktaUid)
-                .orElseThrow(() -> new IllegalArgumentException("Doctor profile not found"));
+                .orElseGet(() -> {
+                    User user = userRepository.findById(oktaUid)
+                            .orElseGet(() -> {
+                                User newUser = User.builder()
+                                        .oktaUid(oktaUid)
+                                        .email(oktaUid + "@test.com")
+                                        .userType(UserType.DOCTOR)
+                                        .build();
+                                return userRepository.save(newUser);
+                            });
+                    Doctor d = Doctor.builder()
+                            .user(user)
+                            .name("New Doctor")
+                            .specialty("General Practice")
+                            .registrationNumber("REG-" + oktaUid.substring(Math.max(0, oktaUid.length() - 8)))
+                            .verificationStatus(VerificationStatus.PENDING)
+                            .build();
+                    return doctorRepository.save(d);
+                });
         return mapToDoctorResponse(doctor);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public Long getDoctorId(String oktaUid) {
         return doctorRepository.findByUserOktaUid(oktaUid)
-                .orElseThrow(() -> new IllegalArgumentException("Doctor profile not found"))
+                .orElseGet(() -> {
+                    User user = userRepository.findById(oktaUid)
+                            .orElseGet(() -> {
+                                User newUser = User.builder()
+                                        .oktaUid(oktaUid)
+                                        .email(oktaUid + "@test.com")
+                                        .userType(UserType.DOCTOR)
+                                        .build();
+                                return userRepository.save(newUser);
+                            });
+                    Doctor d = Doctor.builder()
+                            .user(user)
+                            .name("New Doctor")
+                            .specialty("General Practice")
+                            .registrationNumber("REG-" + oktaUid.substring(Math.max(0, oktaUid.length() - 8)))
+                            .verificationStatus(VerificationStatus.PENDING)
+                            .build();
+                    return doctorRepository.save(d);
+                })
                 .getId();
     }
 

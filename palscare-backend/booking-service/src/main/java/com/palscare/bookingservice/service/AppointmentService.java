@@ -5,6 +5,7 @@ import com.palscare.bookingservice.model.*;
 import com.palscare.bookingservice.repository.AppointmentRepository;
 import com.palscare.bookingservice.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -29,6 +30,12 @@ public class AppointmentService {
     private final PaymentRepository paymentRepository;
     private final RestTemplate restTemplate;
 
+    @Value("${palscare.services.user-service.url}")
+    private String userServiceUrl;
+
+    @Value("${palscare.services.doctor-slot-service.url}")
+    private String doctorSlotServiceUrl;
+
     private Long getPatientIdFromUserService(String oktaUid) {
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-User-Id", oktaUid);
@@ -38,7 +45,7 @@ public class AppointmentService {
         HttpEntity<Void> entity = new HttpEntity<>(headers);
         try {
             ResponseEntity<Long> response = restTemplate.exchange(
-                    "http://user-service/api/v1/patients/internal/id",
+                    userServiceUrl + "/api/v1/patients/internal/id",
                     HttpMethod.GET,
                     entity,
                     Long.class
@@ -57,7 +64,7 @@ public class AppointmentService {
         HttpEntity<Void> entity = new HttpEntity<>(headers);
         try {
             ResponseEntity<SlotDto> response = restTemplate.exchange(
-                    "http://doctor-slot-service/api/v1/doctors/slots/internal/" + slotId,
+                    doctorSlotServiceUrl + "/api/v1/doctors/slots/internal/" + slotId,
                     HttpMethod.GET,
                     entity,
                     SlotDto.class
@@ -76,7 +83,7 @@ public class AppointmentService {
         HttpEntity<Void> entity = new HttpEntity<>(headers);
         try {
             restTemplate.exchange(
-                    "http://doctor-slot-service/api/v1/doctors/slots/internal/" + slotId + "/book?version=" + version,
+                    doctorSlotServiceUrl + "/api/v1/doctors/slots/internal/" + slotId + "/book?version=" + version,
                     HttpMethod.PUT,
                     entity,
                     Void.class
@@ -94,7 +101,7 @@ public class AppointmentService {
         HttpEntity<Void> entity = new HttpEntity<>(headers);
         try {
             restTemplate.exchange(
-                    "http://doctor-slot-service/api/v1/doctors/slots/internal/" + slotId + "/release",
+                    doctorSlotServiceUrl + "/api/v1/doctors/slots/internal/" + slotId + "/release",
                     HttpMethod.PUT,
                     entity,
                     Void.class

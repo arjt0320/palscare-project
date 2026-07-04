@@ -190,7 +190,7 @@ export default function Appointments() {
       .then(() => {
         setIsCancelling(false);
         setShowCancelModal(false);
-        toast.success("Appointment cancelled & refunded");
+        toast.success("Appointment cancelled");
         loadAppointments();
         setActiveAppointment(null);
       })
@@ -209,9 +209,6 @@ export default function Appointments() {
 
   // Helper values for active modal
   const activeDoctor = activeAppointment ? findDoctor(activeAppointment.doctorId) : null;
-  const activeRefundFee = activeAppointment && activeDoctor 
-    ? (activeAppointment.mode === "telemedicine" && activeDoctor.modes.includes("telemedicine") ? activeDoctor.feeUsd - 10 : activeDoctor.feeUsd)
-    : 0;
 
   return (
     <div className="animate-fade-up">
@@ -255,13 +252,13 @@ export default function Appointments() {
         )}
       </section>
 
-      {/* CONFIRM REFUND CANCELLATION MODAL */}
+      {/* CONFIRM CANCELLATION MODAL */}
       <Dialog open={showCancelModal} onOpenChange={setShowCancelModal}>
         <DialogContent className="max-w-[360px] rounded-3xl p-5 bg-card/95 backdrop-blur-xl border border-border shadow-elevated">
           <DialogHeader>
             <DialogTitle className="font-display text-lg font-bold text-foreground">Cancel Visit?</DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              This will cancel your scheduled slot and process a partial refund.
+              This will cancel your scheduled slot. The doctor will be notified.
             </DialogDescription>
           </DialogHeader>
 
@@ -276,18 +273,9 @@ export default function Appointments() {
               </div>
 
               {/* Policy note */}
-              <div className="rounded-2xl border border-dashed border-primary/30 bg-primary-soft/30 p-3 text-xs space-y-2">
-                <div className="flex justify-between text-muted-foreground text-[11px]">
-                  <span>Refund Amount</span>
-                  <span className="font-semibold text-foreground">${activeRefundFee}.00</span>
-                </div>
-                <div className="flex justify-between text-muted-foreground text-[11px]">
-                  <span>Platform Fee (Non-refundable)</span>
-                  <span className="font-semibold text-foreground">$5.00</span>
-                </div>
-                <hr className="border-border" />
-                <p className="text-[10px] text-primary italic leading-tight">
-                  Note: A refund of ${activeRefundFee}.00 will be credited to your card. The $5.00 platform charge is non-refundable.
+              <div className="rounded-2xl border border-dashed border-primary/30 bg-primary-soft/30 p-3 text-xs">
+                <p className="text-[11px] text-primary leading-tight">
+                  Note: Cancellations release the chamber slot back to the clinic's availability. Please confirm to proceed.
                 </p>
               </div>
 

@@ -1,4 +1,4 @@
-const GATEWAY_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+const GATEWAY_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8080";
 
 function getHeaders(role = "DOCTOR") {
   const current = localStorage.getItem("palscare-current-user");

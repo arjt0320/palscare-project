@@ -68,7 +68,7 @@ export default function DoctorOnboarding() {
       feeUsd: parseInt(fee, 10) || 60,
       clinic: "Global Health Center",
       distanceKm: 2.5,
-      modes: ["in-person", "telemedicine"],
+      modes: ["in-person"],
       photo: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?q=80&w=256&h=256&fit=crop"
     })
       .then((res) => {

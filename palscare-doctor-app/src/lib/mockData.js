@@ -39,6 +39,7 @@ const baseDoctors = [];
 const baseAppointments = [];
 const basePrescriptions = [];
 const baseMedicalHistory = [];
+const MEDICAL_HISTORY_KEY = "palscare-medical-history";
 
 function seedMedicalHistory() {
   if (!isBrowser) {

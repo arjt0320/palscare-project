@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Award, Calendar, MapPin, Star, Stethoscope, Video, CreditCard } from "lucide-react";
+import { ArrowLeft, Award, Calendar, MapPin, Star, Stethoscope, Video, CreditCard, Fingerprint, ShieldCheck } from "lucide-react";
 import { format } from "date-fns";
 import { addAppointment, findDoctor, patient, apiGetDoctorSlots, apiBookAppointment, apiGetDoctors } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
@@ -54,13 +54,9 @@ export default function DoctorDetails() {
   const [selectedMode, setSelectedMode] = useState("in-person");
   const [slotsList, setSlotsList] = useState([]);
 
-  // Payment simulated modal states
+  // Booking confirmation modal states
   const [showPayment, setShowPayment] = useState(false);
-  const [isPaying, setIsPaying] = useState(false);
-  const [cardName, setCardName] = useState("");
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardExpiry, setCardExpiry] = useState("");
-  const [cardCvv, setCardCvv] = useState("");
+  const [bookingState, setBookingState] = useState("idle"); // "idle" | "verifying" | "success"
 
   useEffect(() => {
     // Fetch doctor info from backend approved directory list
@@ -75,13 +71,13 @@ export default function DoctorDetails() {
           rating: 4.8,
           reviews: 120,
           clinic: dbDoc.university || "PalsCare Clinic",
-          modes: ["in-person", "telemedicine"],
+          modes: ["in-person"], // force in-person only
           feeUsd: 80,
           about: dbDoc.bio || "Primary care physician.",
           photo: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?q=80&w=256&h=256&fit=crop"
         };
         setDoctor(docObj);
-        setSelectedMode(docObj.modes[0]);
+        setSelectedMode("in-person");
       } else {
         toast.error("Doctor not found.");
         navigate("/find");
@@ -123,33 +119,30 @@ export default function DoctorDetails() {
       toast.error("Choose a time slot first.");
       return;
     }
-    setCardName(patient.name || "");
-    setCardNumber("");
-    setCardExpiry("");
-    setCardCvv("");
     setShowPayment(true);
   };
 
   const handlePaymentSubmit = (e) => {
     e.preventDefault();
-    if (!cardNumber || !cardExpiry || !cardCvv) {
-      toast.error("Please fill in all card details.");
-      return;
-    }
+    setBookingState("verifying");
 
-    setIsPaying(true);
-
-    apiBookAppointment(selectedSlotId, "Doctor visit")
+    // Book slot via backend API
+    apiBookAppointment(selectedSlotId, "Chamber consultation")
       .then(() => {
-        setIsPaying(false);
-        setShowPayment(false);
-        toast.success("Appointment booked & paid!", {
-          description: `${doctor.name} • ${format(days[selectedDayIndex], "EEE, MMM d")} at ${selectedTime}`,
-        });
-        navigate("/appointments");
+        setTimeout(() => {
+          setBookingState("success");
+          setTimeout(() => {
+            setBookingState("idle");
+            setShowPayment(false);
+            toast.success("Appointment booked successfully!", {
+              description: `${doctor.name} • ${format(days[selectedDayIndex], "EEE, MMM d")} at ${selectedTime}`,
+            });
+            navigate("/appointments");
+          }, 1000);
+        }, 1800);
       })
       .catch((err) => {
-        setIsPaying(false);
+        setBookingState("idle");
         toast.error("Booking failed: Slot might have been booked in the meantime.");
         console.error(err);
       });
@@ -157,7 +150,11 @@ export default function DoctorDetails() {
 
   const availableDaySlots = useMemo(() => {
     const selectedDayName = format(days[selectedDayIndex], "EEEE");
-    return slotsList.filter(slot => slot.slotDay.toLowerCase() === selectedDayName.toLowerCase() && !slot.isBooked);
+    return slotsList.filter(slot => 
+      slot.slotDay.toLowerCase() === selectedDayName.toLowerCase() && 
+      !slot.isBooked && 
+      slot.slotMode.toLowerCase() === "chamber"
+    );
   }, [slotsList, selectedDayIndex, days]);
 
   const formatTimeStr = (timeStr) => {
@@ -310,121 +307,80 @@ export default function DoctorDetails() {
         </button>
       </div>
 
-      {/* Simulated Payment Sheet Modal */}
+      {/* Booking Confirmation Modal */}
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
         <DialogContent className="max-w-[360px] rounded-3xl p-5 bg-card/95 backdrop-blur-xl border border-border shadow-elevated">
           <DialogHeader>
-            <DialogTitle className="font-display text-lg font-bold text-foreground">Confirm & Pay</DialogTitle>
+            <DialogTitle className="font-display text-lg font-bold text-foreground">Confirm Appointment</DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              Review your appointment summary and enter payment info.
+              Review your appointment summary and confirm your booking.
             </DialogDescription>
           </DialogHeader>
 
-          {/* Booking Summary */}
-          <div className="mt-2 rounded-2xl bg-secondary/50 p-3.5 space-y-2.5 text-xs">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Doctor</span>
-              <span className="font-semibold text-foreground">{doctor.name}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Type</span>
-              <span className="font-semibold capitalize text-foreground">{selectedMode === "telemedicine" ? "Video Consultation" : "In-person Visit"}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Date & Time</span>
-              <span className="font-semibold text-foreground">
-                {selectedTime && format(days[selectedDayIndex], "EEE, MMM d")} at {selectedTime}
-              </span>
-            </div>
-            <hr className="border-border" />
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Consultation Fee</span>
-              <span className="font-semibold text-foreground">${currentFee}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Platform Fee</span>
-              <span className="font-semibold text-foreground">$5.00</span>
-            </div>
-            <div className="flex justify-between border-t border-dashed border-border pt-2 text-sm">
-              <span className="font-bold text-foreground">Total Charge</span>
-              <span className="font-bold text-primary">${currentFee + 5}</span>
-            </div>
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handlePaymentSubmit} className="mt-4 space-y-3">
-            <div>
-              <label className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">Cardholder Name</label>
-              <input
-                type="text"
-                required
-                value={cardName}
-                onChange={(e) => setCardName(e.target.value)}
-                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:border-primary"
-              />
-            </div>
-
-            <div>
-              <label className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">Card Number</label>
-              <input
-                type="text"
-                required
-                placeholder="4111 2222 3333 4444"
-                maxLength="19"
-                value={cardNumber}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, "").replace(/(\d{4})/g, "$1 ").trim();
-                  setCardNumber(val);
-                }}
-                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:border-primary"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">Expiry Date</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="MM/YY"
-                  maxLength="5"
-                  value={cardExpiry}
-                  onChange={(e) => {
-                    let val = e.target.value.replace(/\D/g, "");
-                    if (val.length >= 2) {
-                      val = val.slice(0, 2) + "/" + val.slice(2, 4);
-                    }
-                    setCardExpiry(val);
-                  }}
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:border-primary"
-                />
+          {bookingState === "verifying" && (
+            <div className="flex flex-col items-center justify-center py-8 space-y-4 animate-fade-in">
+              <div className="relative h-20 w-20 flex items-center justify-center rounded-3xl bg-primary-soft/40 border border-primary/20 overflow-hidden shadow-soft">
+                {/* Scanning Laser Line */}
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary shadow-glow animate-scan-line" />
+                <Fingerprint className="h-10 w-10 text-primary animate-pulse" />
               </div>
-              <div>
-                <label className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">CVV</label>
-                <input
-                  type="password"
-                  required
-                  placeholder="***"
-                  maxLength="3"
-                  value={cardCvv}
-                  onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, ""))}
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:border-primary"
-                />
+              <div className="text-center">
+                <p className="font-semibold text-sm text-foreground animate-pulse">Scanning Biometrics...</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Please scan your fingerprint to confirm</p>
               </div>
             </div>
+          )}
 
-            <button
-              type="submit"
-              disabled={isPaying}
-              className="w-full mt-4 flex items-center justify-center rounded-xl bg-primary py-3 text-xs font-semibold text-primary-foreground shadow-soft hover:bg-primary/95 disabled:opacity-75"
-            >
-              {isPaying ? (
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-              ) : (
-                `Pay $${currentFee + 5} & Confirm`
-              )}
-            </button>
-          </form>
+          {bookingState === "success" && (
+            <div className="flex flex-col items-center justify-center py-8 space-y-4">
+              <div className="h-20 w-20 flex items-center justify-center rounded-3xl bg-success/10 border border-success/20 shadow-soft">
+                <ShieldCheck className="h-10 w-10 text-success animate-bounce" />
+              </div>
+              <div className="text-center">
+                <p className="font-semibold text-sm text-foreground">Booking Authorized!</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Identity verified successfully</p>
+              </div>
+            </div>
+          )}
+
+          {bookingState === "idle" && (
+            <>
+              {/* Booking Summary */}
+              <div className="mt-2 rounded-2xl bg-secondary/50 p-3.5 space-y-2.5 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Doctor</span>
+                  <span className="font-semibold text-foreground">{doctor.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Type</span>
+                  <span className="font-semibold capitalize text-foreground">Clinic Chamber Visit</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Date & Time</span>
+                  <span className="font-semibold text-foreground">
+                    {selectedTime && format(days[selectedDayIndex], "EEE, MMM d")} at {selectedTime}
+                  </span>
+                </div>
+                <hr className="border-border" />
+                <div className="flex justify-between text-sm">
+                  <span className="font-bold text-foreground">Consultation Fee</span>
+                  <span className="font-bold text-primary">${currentFee}</span>
+                </div>
+                <div className="rounded-xl bg-primary-soft/40 p-2.5 text-[10px] text-primary italic leading-tight">
+                  Note: Direct payment has been enabled. No credit card is required. You can settle the fee of ${currentFee} at the clinic.
+                </div>
+              </div>
+
+              <form onSubmit={handlePaymentSubmit} className="mt-4">
+                <button
+                  type="submit"
+                  className="w-full flex items-center justify-center rounded-xl bg-primary py-3 text-xs font-semibold text-primary-foreground shadow-soft hover:bg-primary/95 transition"
+                >
+                  Confirm & Book (Biometric Scan)
+                </button>
+              </form>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>

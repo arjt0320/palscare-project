@@ -5,6 +5,7 @@ import com.palscare.doctorslotservice.model.*;
 import com.palscare.doctorslotservice.repository.ChamberRepository;
 import com.palscare.doctorslotservice.repository.SlotRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -23,6 +24,9 @@ public class DoctorSlotService {
     private final SlotRepository slotRepository;
     private final RestTemplate restTemplate;
 
+    @Value("${palscare.services.user-service.url}")
+    private String userServiceUrl;
+
     private Long getDoctorIdFromUserService(String oktaUid) {
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-User-Id", oktaUid);
@@ -32,7 +36,7 @@ public class DoctorSlotService {
         HttpEntity<Void> entity = new HttpEntity<>(headers);
         try {
             ResponseEntity<Long> response = restTemplate.exchange(
-                    "http://user-service/api/v1/doctors/internal/id",
+                    userServiceUrl + "/api/v1/doctors/internal/id",
                     HttpMethod.GET,
                     entity,
                     Long.class
@@ -79,6 +83,10 @@ public class DoctorSlotService {
             if (!chamber.getDoctorId().equals(doctorId)) {
                 throw new IllegalArgumentException("Chamber does not belong to this doctor");
             }
+        }
+
+        if (slotRepository.existsDuplicateSlot(doctorId, request.getSlotDay(), request.getStartTime(), chamber)) {
+            throw new IllegalArgumentException("Slot already exists for the specified day, time, and chamber/mode");
         }
 
         Slot slot = Slot.builder()
