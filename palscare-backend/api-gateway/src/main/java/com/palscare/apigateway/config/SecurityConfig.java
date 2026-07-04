@@ -10,9 +10,6 @@ import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.security.web.server.SecurityWebFilterChain;
-import org.springframework.web.cors.reactive.CorsConfigurationSource;
-import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
-import org.springframework.web.cors.CorsConfiguration;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -27,7 +24,6 @@ public class SecurityConfig {
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
         http
             .csrf(ServerHttpSecurity.CsrfSpec::disable)
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeExchange(exchanges -> exchanges
                 .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .pathMatchers("/api/v1/auth/**").permitAll()
@@ -41,19 +37,5 @@ public class SecurityConfig {
     public ReactiveJwtDecoder jwtDecoder() {
         SecretKey secretKey = new SecretKeySpec(jwtSecret.getBytes(), "HMACSHA256");
         return NimbusReactiveJwtDecoder.withSecretKey(secretKey).build();
-    }
-
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration corsConfig = new CorsConfiguration();
-        corsConfig.addAllowedOriginPattern("*");
-        corsConfig.addAllowedMethod("*");
-        corsConfig.addAllowedHeader("*");
-        corsConfig.setAllowCredentials(false);
-        corsConfig.setMaxAge(3600L);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", corsConfig);
-        return source;
     }
 }

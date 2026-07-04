@@ -6,6 +6,13 @@ spring:
     name: api-gateway
   cloud:
     gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+            allowCredentials: false
       routes:
         - id: doctor-slot-service
           uri: ${DOCTOR_SLOT_SERVICE_URL:lb://doctor-slot-service}
