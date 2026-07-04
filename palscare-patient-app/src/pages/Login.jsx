@@ -6,7 +6,7 @@ import { apiRequest } from "@/lib/api";
 import { toast } from "sonner";
 
 export default function Login() {
-  const { loginWithRedirect, isAuthenticated, isLoading: authLoading, user, getAccessTokenSilently } = useAuth0();
+  const { loginWithRedirect, isAuthenticated, isLoading: authLoading, user, getAccessTokenSilently, getIdTokenClaims } = useAuth0();
   const [isSyncing, setIsSyncing] = useState(false);
   const navigate = useNavigate();
 
@@ -15,8 +15,19 @@ export default function Login() {
       if (isAuthenticated && user) {
         setIsSyncing(true);
         try {
-          // 1. Fetch live JWT Access Token from Auth0
-          const token = await getAccessTokenSilently();
+          // 1. Fetch live JWT Token from Auth0 (use ID token first as it's cached, fallback to access token)
+          let token;
+          try {
+            const claims = await getIdTokenClaims();
+            token = claims?.__raw;
+          } catch (tokenErr) {
+            token = await getAccessTokenSilently();
+          }
+
+          if (!token) {
+            throw new Error("Could not retrieve authentication token.");
+          }
+
           localStorage.setItem("palscare-token", token);
 
           // Store temporary user details
