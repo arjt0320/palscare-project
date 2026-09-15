@@ -1,0 +1,716 @@
+{
+  "info": {
+    "_postman_id": "ff7f1a4b-bd38-4b66-9ddb-daca742b947a",
+    "name": "PalsCare API Collection",
+    "description": "Complete REST API Collection for both Patient and Doctor Portals on the PalsCare Platform. Includes Auth, Profiles, Slot Management, Chambers, and Booking workflows.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth & User Management",
+      "item": [
+        {
+          "name": "Register User (Patient/Doctor)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dr. Jane Foster\",\n  \"email\": \"jane.foster@yopmail.com\",\n  \"phone\": \"9876543201\",\n  \"password\": \"password\",\n  \"userType\": \"DOCTOR\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Register a new user account. Set `userType` to 'PATIENT' or 'DOCTOR' depending on the role."
+          },
+          "response": []
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.environment.set(\"token\", jsonData.token);",
+                  "    pm.environment.set(\"userId\", jsonData.userId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"jane.foster@yopmail.com\",\n  \"password\": \"password\",\n  \"userType\": \"DOCTOR\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Log in to retrieve the JWT authentication token. Saves the token and userId into environment variables automatically upon success."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Patient Workflows",
+      "item": [
+        {
+          "name": "Get Patient Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "PATIENT"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/patients/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "patients",
+                "profile"
+              ]
+            },
+            "description": "Retrieve the profile details of the logged-in patient."
+          },
+          "response": []
+        },
+        {
+          "name": "Create/Update Patient Profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "PATIENT"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Patient\",\n  \"phone\": \"9125478523\",\n  \"dob\": \"1995-08-21\",\n  \"bloodGroup\": \"O+\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/patients/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "patients",
+                "profile"
+              ]
+            },
+            "description": "Onboard or update personal clinical details for the patient."
+          },
+          "response": []
+        },
+        {
+          "name": "Search & List Doctors",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "PATIENT"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/patients/doctors?specialty=Dermatology",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "patients",
+                "doctors"
+              ],
+              "query": [
+                {
+                  "key": "specialty",
+                  "value": "Dermatology",
+                  "description": "Filter doctors by clinical specialty (Optional)"
+                }
+              ]
+            },
+            "description": "Get a list of all onboarded doctors on the platform. Can filter by specialty query param."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Doctor Available Slots",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "PATIENT"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/patients/doctors/{{targetDoctorId}}/slots",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "patients",
+                "doctors",
+                "{{targetDoctorId}}",
+                "slots"
+              ]
+            },
+            "description": "Retrieve available appointment slots for a specific doctor."
+          },
+          "response": []
+        },
+        {
+          "name": "Book Appointment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "PATIENT"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"doctorId\": 7,\n  \"slotId\": 12,\n  \"patientName\": \"John Patient\",\n  \"patientPhone\": \"9125478523\",\n  \"reason\": \"Routine checkup for skin allergy.\",\n  \"appointmentDate\": \"2026-07-10\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/patients/appointments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "patients",
+                "appointments"
+              ]
+            },
+            "description": "Book a consulting slot with a doctor. Creates the appointment record and updates the slot status to booked."
+          },
+          "response": []
+        },
+        {
+          "name": "List Patient Appointments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "PATIENT"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/patients/appointments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "patients",
+                "appointments"
+              ]
+            },
+            "description": "Get all booked appointments for the currently logged-in patient."
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Appointment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "PATIENT"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/patients/appointments/{{appointmentId}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "patients",
+                "appointments",
+                "{{appointmentId}}",
+                "cancel"
+              ]
+            },
+            "description": "Cancel an active appointment. Releases the slot back to available status."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Doctor Workflows",
+      "item": [
+        {
+          "name": "Get Doctor Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "DOCTOR"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/doctors/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "doctors",
+                "profile"
+              ]
+            },
+            "description": "Retrieve clinical details and onboarding status of the logged-in doctor."
+          },
+          "response": []
+        },
+        {
+          "name": "Onboard Doctor Clinical Details",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "DOCTOR"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dr. Jane Foster\",\n  \"specialty\": \"Dermatology\",\n  \"registrationNumber\": \"REG-JANE999\",\n  \"university\": \"Harvard Medical School\",\n  \"experienceYears\": 12,\n  \"bio\": \"Dedicated specialist in dermatology and skin care.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/doctors/onboarding",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "doctors",
+                "onboarding"
+              ]
+            },
+            "description": "Complete clinical details setup for the doctor profile. Throws 409 Conflict if the registration number is already registered by another doctor."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Chambers List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "DOCTOR"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/doctors/chambers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "doctors",
+                "chambers"
+              ]
+            },
+            "description": "List all physical consultation chambers registered by the logged-in doctor."
+          },
+          "response": []
+        },
+        {
+          "name": "Register New Chamber",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "DOCTOR"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"City Dental Clinic\",\n  \"address\": \"456 Main St, New York, NY\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/doctors/chambers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "doctors",
+                "chambers"
+              ]
+            },
+            "description": "Register a new chamber location for slot mapping."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Generated Slots",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "DOCTOR"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/doctors/slots",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "doctors",
+                "slots"
+              ]
+            },
+            "description": "List all consultation slots generated by the logged-in doctor."
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Consultation Slot",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "DOCTOR"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slotDay\": \"Monday\",\n  \"startTime\": \"09:30:00\",\n  \"slotMode\": \"CHAMBER\",\n  \"chamberId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/doctors/slots/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "doctors",
+                "slots",
+                "generate"
+              ]
+            },
+            "description": "Generate a new consultation slot for online or in-chamber booking. `slotMode` can be 'ONLINE' or 'CHAMBER'."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Consultation Slot",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "DOCTOR"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/doctors/slots/{{targetSlotId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "doctors",
+                "slots",
+                "{{targetSlotId}}"
+              ]
+            },
+            "description": "Delete a consultation slot using its ID."
+          },
+          "response": []
+        },
+        {
+          "name": "List Doctor Appointments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "X-User-Id",
+                "value": "{{userId}}"
+              },
+              {
+                "key": "X-User-Role",
+                "value": "DOCTOR"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/patients/appointments/doctor",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "patients",
+                "appointments",
+                "doctor"
+              ]
+            },
+            "description": "Get all appointments booked by patients for the currently logged-in doctor."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "targetDoctorId",
+      "value": "7",
+      "type": "string"
+    },
+    {
+      "key": "targetSlotId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "appointmentId",
+      "value": "1",
+      "type": "string"
+    }
+  ]
+}

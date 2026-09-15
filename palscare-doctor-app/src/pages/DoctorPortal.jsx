@@ -44,7 +44,8 @@ import {
   apiAddDoctorSlot,
   apiRemoveDoctorSlot,
   apiGetDoctorAppointments,
-  apiUpdateDoctorProfile
+  apiUpdateDoctorProfile,
+  apiRequest
 } from "@/lib/mockData";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -109,7 +110,7 @@ export default function DoctorPortal() {
     }
 
     const current = await apiGetCurrentDoctor();
-    if (!current) {
+    if (!current || !current.specialty || !current.experience) {
       toast.error("Please complete onboarding first.");
       navigate("/doctor/onboarding");
       return;
@@ -143,20 +144,34 @@ export default function DoctorPortal() {
       setChambers([]);
     }
 
+
+
     // Load appointments matching this doctor from backend database
     try {
       const apiAppts = await apiGetDoctorAppointments();
-      const mapped = apiAppts.map(a => {
+      const mapped = await Promise.all(apiAppts.map(async (a) => {
         const timePart = a.appointmentDatetime.split("T")[1];
+        let patientName = "Unknown Patient";
+        let patientDetails = null;
+        try {
+          const patientData = await apiRequest("/api/v1/patients/internal/" + a.patientId, "GET", null, "DOCTOR");
+          patientName = patientData.name || ("Patient " + a.patientId);
+          patientDetails = patientData;
+        } catch (e) {
+          console.error("Failed to load patient details for patientId: " + a.patientId, e);
+        }
         return {
           id: a.id,
           date: a.appointmentDatetime.split("T")[0],
           time: formatTimeStr(timePart),
           mode: a.consultationMode === "VIDEO" ? "telemedicine" : "in-person",
           reason: a.reason,
-          status: a.status === "BOOKED" ? "upcoming" : a.status.toLowerCase()
+          status: a.status === "BOOKED" ? "upcoming" : a.status.toLowerCase(),
+          patientId: a.patientId,
+          patientName: patientName,
+          patientDetails: patientDetails
         };
-      });
+      }));
       setAppointments(mapped);
     } catch (err) {
       console.error("Failed to load doctor appointments from backend", err);
@@ -349,9 +364,10 @@ export default function DoctorPortal() {
                 <h2 className="font-display text-base font-semibold text-foreground">Upcoming Consultations</h2>
                 {appointments.map((appt) => (
                   <article key={appt.id} className="rounded-2xl bg-card p-4 shadow-soft border border-border space-y-3">
+
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="font-semibold text-sm text-foreground">Patient: Alex Morgan</h3>
+                        <h3 className="font-semibold text-sm text-foreground">Patient: {appt.patientName}</h3>
                         <p className="text-[11px] text-muted-foreground">Reason: {appt.reason}</p>
                       </div>
                       <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium capitalize">
@@ -418,7 +434,7 @@ export default function DoctorPortal() {
                         <article key={appt.id} className="rounded-2xl bg-card p-4 shadow-soft border border-border space-y-3">
                           <div className="flex items-center justify-between">
                             <div>
-                              <h3 className="font-semibold text-sm text-foreground">Patient: Alex Morgan</h3>
+                              <h3 className="font-semibold text-sm text-foreground">Patient: {appt.patientName}</h3>
                               <p className="text-[11px] text-muted-foreground">Reason: {appt.reason}</p>
                             </div>
                             <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium capitalize">
@@ -453,7 +469,7 @@ export default function DoctorPortal() {
                         <article key={appt.id} className="rounded-2xl bg-card p-4 shadow-soft border border-border space-y-2">
                           <div className="flex items-center justify-between">
                             <div>
-                              <h3 className="font-semibold text-xs text-foreground">Patient: Alex Morgan</h3>
+                              <h3 className="font-semibold text-xs text-foreground">Patient: {appt.patientName}</h3>
                               <p className="text-[10px] text-muted-foreground">Date: {format(new Date(appt.date), "MMM d, yyyy")} • {appt.time}</p>
                             </div>
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${
@@ -492,20 +508,20 @@ export default function DoctorPortal() {
                     <div className="flex justify-between items-center">
                       <h2 className="font-display text-base font-semibold text-primary flex items-center gap-1">
                         <Stethoscope className="h-4 w-4" />
-                        Consulting: Alex Morgan
+                        Consulting: {activeAppt?.patientName}
                       </h2>
                       <button onClick={() => setActiveAppt(null)} className="text-[11px] text-muted-foreground underline">Cancel</button>
                     </div>
                     <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
-                      <p>DOB: Aug 14, 1991</p>
-                      <p>Blood: O+</p>
-                      <p className="col-span-2">Allergies: Penicillin, Peanuts</p>
+                      <p>DOB: {activeAppt?.patientDetails?.dob ? format(new Date(activeAppt.patientDetails.dob), "MMM d, yyyy") : "N/A"}</p>
+                      <p>Blood: {activeAppt?.patientDetails?.bloodGroup || "N/A"}</p>
+                      <p className="col-span-2">Phone: {activeAppt?.patientDetails?.phone || "N/A"}</p>
                     </div>
                   </section>
 
                   {/* Patient History Check with PDF document access */}
                   <section className="rounded-2xl bg-card p-4 shadow-soft border border-border">
-                    <h3 className="font-display text-sm font-semibold text-foreground mb-2.5 text-left">Alex Morgan's Medical History</h3>
+                    <h3 className="font-display text-sm font-semibold text-foreground mb-2.5 text-left">{activeAppt?.patientName}'s Medical History</h3>
                     <div className="max-h-[160px] overflow-y-auto space-y-3 pr-1">
                       {medicalHistory.map((rec) => (
                         <div key={rec.id} className="flex justify-between items-start text-xs border-l-2 border-primary-soft pl-2.5 py-0.5 text-left">
@@ -554,7 +570,7 @@ export default function DoctorPortal() {
                     window.localStorage.setItem("health-buddy-appointments", JSON.stringify(actualAppts));
 
                     toast.success("Prescription issued!", {
-                      description: "Patient Alex Morgan can now view this in their portal."
+                      description: "Patient " + (activeAppt?.patientName || "") + " can now view this in their portal."
                     });
 
                     // Reset states
@@ -1169,8 +1185,8 @@ export default function DoctorPortal() {
                   </div>
                   <div className="text-right text-[9px] text-muted-foreground font-medium">
                     <p className="font-bold text-foreground">Report Date: {selectedPdf.date}</p>
-                    <p>Patient Name: Alex Morgan</p>
-                    <p>Age/Gender: 34 / Male</p>
+                    <p>Patient Name: {activeAppt?.patientName || "Alex Morgan"}</p>
+                    <p>Age/Gender: {activeAppt?.patientDetails?.dob ? (new Date().getFullYear() - new Date(activeAppt.patientDetails.dob).getFullYear()) + " / " + (activeAppt?.patientDetails?.gender || "Male") : "34 / Male"}</p>
                   </div>
                 </div>
 
@@ -1275,7 +1291,7 @@ export default function DoctorPortal() {
             <header className="flex items-center justify-between border-b border-border pb-3">
               <div className="text-left">
                 <h3 className="font-display text-sm font-bold text-foreground">Consultation Summary</h3>
-                <p className="text-[10px] text-muted-foreground">Patient: Alex Morgan</p>
+                <p className="text-[10px] text-muted-foreground">Patient: {viewingApptSummary.patientName}</p>
               </div>
               <button 
                 onClick={() => setViewingApptSummary(null)}

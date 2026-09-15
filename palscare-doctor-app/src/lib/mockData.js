@@ -633,7 +633,7 @@ export const doctors = new Proxy([], {
 });
 
 // --- API Gateway Integration ---
-import { apiRequest } from "./api";
+export { apiRequest } from "./api";
 
 export async function apiLoginDoctor(email, password) {
   const mockUid = "okta_doc_456";

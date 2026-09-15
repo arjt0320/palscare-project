@@ -122,6 +122,8 @@ export default function DoctorDetails() {
     setShowPayment(true);
   };
 
+
+
   const handlePaymentSubmit = (e) => {
     e.preventDefault();
     setBookingState("verifying");
@@ -138,8 +140,8 @@ export default function DoctorDetails() {
               description: `${doctor.name} • ${format(days[selectedDayIndex], "EEE, MMM d")} at ${selectedTime}`,
             });
             navigate("/appointments");
-          }, 1000);
-        }, 1800);
+          }, 800);
+        }, 500);
       })
       .catch((err) => {
         setBookingState("idle");
@@ -317,16 +319,13 @@ export default function DoctorDetails() {
             </DialogDescription>
           </DialogHeader>
 
+
           {bookingState === "verifying" && (
             <div className="flex flex-col items-center justify-center py-8 space-y-4 animate-fade-in">
-              <div className="relative h-20 w-20 flex items-center justify-center rounded-3xl bg-primary-soft/40 border border-primary/20 overflow-hidden shadow-soft">
-                {/* Scanning Laser Line */}
-                <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary shadow-glow animate-scan-line" />
-                <Fingerprint className="h-10 w-10 text-primary animate-pulse" />
-              </div>
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
               <div className="text-center">
-                <p className="font-semibold text-sm text-foreground animate-pulse">Scanning Biometrics...</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Please scan your fingerprint to confirm</p>
+                <p className="font-semibold text-sm text-foreground">Processing Booking...</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Please wait while we confirm your slot</p>
               </div>
             </div>
           )}
@@ -337,8 +336,8 @@ export default function DoctorDetails() {
                 <ShieldCheck className="h-10 w-10 text-success animate-bounce" />
               </div>
               <div className="text-center">
-                <p className="font-semibold text-sm text-foreground">Booking Authorized!</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Identity verified successfully</p>
+                <p className="font-semibold text-sm text-foreground">Booking Confirmed!</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Your appointment has been scheduled successfully</p>
               </div>
             </div>
           )}
@@ -376,7 +375,7 @@ export default function DoctorDetails() {
                   type="submit"
                   className="w-full flex items-center justify-center rounded-xl bg-primary py-3 text-xs font-semibold text-primary-foreground shadow-soft hover:bg-primary/95 transition"
                 >
-                  Confirm & Book (Biometric Scan)
+                  Confirm Booking
                 </button>
               </form>
             </>

@@ -1,38 +1,46 @@
 server:
-  port: 8080
+  port: ${PORT:8088}
 
 spring:
   application:
     name: api-gateway
   cloud:
     gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+            allowCredentials: false
       routes:
         - id: doctor-slot-service
-          uri: lb://doctor-slot-service
+          uri: ${DOCTOR_SLOT_SERVICE_URL:lb://doctor-slot-service}
           predicates:
             - Path=/api/v1/doctors/chambers, /api/v1/doctors/chambers/**, /api/v1/doctors/slots, /api/v1/doctors/slots/**, /api/v1/patients/doctors/*/slots
           filters:
             - RemoveRequestHeader=Cookie
         - id: booking-service
-          uri: lb://booking-service
+          uri: ${BOOKING_SERVICE_URL:lb://booking-service}
           predicates:
             - Path=/api/v1/patients/appointments, /api/v1/patients/appointments/**
           filters:
             - RemoveRequestHeader=Cookie
         - id: user-service
-          uri: lb://user-service
+          uri: ${USER_SERVICE_URL:lb://user-service}
           predicates:
             - Path=/api/v1/auth/**, /api/v1/patients/profile, /api/v1/patients/doctors, /api/v1/patients/internal/**, /api/v1/doctors/profile, /api/v1/doctors/onboarding, /api/v1/doctors/internal/**
           filters:
             - RemoveRequestHeader=Cookie
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: https://dev-z6gzatrmm3mxqq8d.us.auth0.com/
-          jwk-set-uri: https://dev-z6gzatrmm3mxqq8d.us.auth0.com/.well-known/jwks.json
+  # Using local symmetric JWT validation in SecurityConfig
 
 eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.cloud.gateway: DEBUG

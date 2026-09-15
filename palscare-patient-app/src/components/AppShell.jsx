@@ -1,13 +1,12 @@
-// import { Outlet, Navigate } from "react-router-dom";
 import { Outlet, Navigate, useLocation } from "react-router-dom";
 import { BottomNav } from "./BottomNav";
-import { getCurrentUser } from "@/lib/mockData";
 
 export function AppShell() {
-  const currentUser = getCurrentUser();
-   const location = useLocation();
+  const token = localStorage.getItem("palscare-token");
+  const currentUser = localStorage.getItem("palscare-current-user");
+  const location = useLocation();
 
-  if (!currentUser) {
+  if (!token || !currentUser) {
     return <Navigate to="/login" replace />;
   }
 

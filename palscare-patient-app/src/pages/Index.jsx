@@ -24,7 +24,14 @@ export default function Index() {
     
     // Load patient name from database
     apiGetProfile().then((p) => {
-      if (p && p.name) setProfileName(p.name);
+      if (p) {
+        if (!p.dob || !p.phone || p.name === "New Patient") {
+          toast.info("Please complete your patient profile details.");
+          navigate("/profile");
+          return;
+        }
+        setProfileName(p.name);
+      }
     }).catch(err => console.error("Failed to load profile for dashboard", err));
 
     // Load active appointments and doctors list from database

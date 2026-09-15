@@ -42,8 +42,19 @@ export async function apiRequest(path, method = "GET", body = null, role = "PATI
 
   const response = await fetch(`${GATEWAY_URL}${path}`, options);
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText || `Request failed with status ${response.status}`);
+    let errorMessage = `Request failed with status ${response.status}`;
+    try {
+      // Try parsing as JSON first
+      const errorJson = await response.json();
+      if (errorJson && errorJson.message) {
+        errorMessage = errorJson.message;
+      } else if (errorJson && errorJson.error) {
+        errorMessage = errorJson.error;
+      }
+    } catch (e) {
+      // Fallback if not JSON
+    }
+    throw new Error(errorMessage);
   }
 
   if (response.status === 204) {
