@@ -3,15 +3,14 @@ import { useMemo, useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { DoctorCard } from "@/components/DoctorCard";
 import { cn } from "@/lib/utils";
-import { doctors, specialties, apiGetDoctors } from "@/lib/mockData";
+import { doctors, specialties } from "@/lib/mockData";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 export default function FindDoctor() {
   const [params, setParams] = useSearchParams();
   const [query, setQuery] = useState(() => params.get("query") || "");
   const active = params.get("specialty") || "All";
-  const [doctorsList, setDoctorsList] = useState([]);
-  const [visibleCount, setVisibleCount] = useState(5);
+  const [visibleCount, setVisibleCount] = useState(8);
 
   // Filter States
   const [maxFee, setMaxFee] = useState("Any");
@@ -24,31 +23,9 @@ export default function FindDoctor() {
     setQuery(urlQuery);
   }, [params]);
 
-  useEffect(() => {
-    apiGetDoctors(active).then((data) => {
-      const mapped = data.map((doc) => ({
-        id: doc.id.toString(),
-        name: doc.name,
-        specialty: doc.specialty,
-        experience: doc.experienceYears,
-        rating: 4.8,
-        reviews: 120,
-        clinic: doc.university || "PalsCare Clinic",
-        modes: ["in-person"], // force in-person only
-        feeUsd: 80,
-        about: doc.bio || "Primary care physician."
-      }));
-      setDoctorsList(mapped);
-    }).catch(err => {
-      console.error("Failed to load doctors", err);
-      // fallback to mock doctors if backend is offline or empty during UI dev
-      setDoctorsList(doctors);
-    });
-  }, [active]);
-
   const filteredDoctors = useMemo(() => {
-    let result = doctorsList.filter((doctor) => {
-      const matchSpecialty = active === "All" || doctor.specialty === active;
+    let result = doctors.filter((doctor) => {
+      const matchSpecialty = active === "All" || doctor.specialty.toLowerCase() === active.toLowerCase();
       const matchQuery =
         !query ||
         doctor.name.toLowerCase().includes(query.toLowerCase()) ||
@@ -79,11 +56,11 @@ export default function FindDoctor() {
     }
 
     return result;
-  }, [doctorsList, active, query, maxFee, minExp, sortBy]);
+  }, [active, query, maxFee, minExp, sortBy]);
 
   // Reset visible items when query or active specialty changes
   useEffect(() => {
-    setVisibleCount(5);
+    setVisibleCount(8);
   }, [active, query]);
 
   // Infinite Scroll Listener
@@ -93,7 +70,7 @@ export default function FindDoctor() {
         window.innerHeight + document.documentElement.scrollTop >=
         document.documentElement.offsetHeight - 120
       ) {
-        setVisibleCount((prev) => Math.min(prev + 5, filteredDoctors.length));
+        setVisibleCount((prev) => Math.min(prev + 4, filteredDoctors.length));
       }
     };
     window.addEventListener("scroll", handleScroll);
@@ -105,7 +82,6 @@ export default function FindDoctor() {
       setParams({});
       return;
     }
-
     setParams({ specialty });
   };
 
@@ -113,7 +89,7 @@ export default function FindDoctor() {
     <div className="animate-fade-up">
       <header className="gradient-soft px-5 pb-4 pt-10">
         <h1 className="font-display text-2xl font-semibold">Find a doctor</h1>
-        <p className="text-sm text-muted-foreground">Specialists, ratings, and open slots.</p>
+        <p className="text-sm text-muted-foreground">Certified specialists, ratings, and immediate slots.</p>
 
         <div className="mt-4 flex items-center gap-2">
           <div className="flex flex-1 items-center gap-2 rounded-2xl bg-card px-4 py-3 shadow-soft">
@@ -157,7 +133,7 @@ export default function FindDoctor() {
         {filteredDoctors.slice(0, visibleCount).map((doctor) => (
           <DoctorCard key={doctor.id} doctor={doctor} />
         ))}
-        
+
         {visibleCount < filteredDoctors.length && (
           <div className="flex justify-center items-center py-6 gap-2">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -167,7 +143,7 @@ export default function FindDoctor() {
 
         {filteredDoctors.length === 0 && (
           <div className="rounded-2xl bg-card p-8 text-center text-sm text-muted-foreground shadow-soft">
-            No doctors match your search.
+            No doctors match your filter criteria.
           </div>
         )}
       </section>
@@ -178,7 +154,7 @@ export default function FindDoctor() {
           <DialogHeader>
             <DialogTitle className="font-display text-lg font-bold text-foreground">Filter Doctors</DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              Narrow down your doctor selection.
+              Narrow down your specialist preferences.
             </DialogDescription>
           </DialogHeader>
 
@@ -190,7 +166,7 @@ export default function FindDoctor() {
                 {[
                   { label: "Any", value: "Any" },
                   { label: "Under $80", value: "80" },
-                  { label: "Under $120", value: "120" }
+                  { label: "Under $120", value: "120" },
                 ].map((item) => (
                   <button
                     key={item.value}
@@ -200,7 +176,7 @@ export default function FindDoctor() {
                       "rounded-xl py-2 text-xs font-semibold border transition",
                       maxFee === item.value
                         ? "border-primary bg-primary-soft text-primary shadow-soft"
-                        : "border-border bg-background text-muted-foreground"
+                        : "border-border bg-background text-muted-foreground",
                     )}
                   >
                     {item.label}
@@ -217,7 +193,7 @@ export default function FindDoctor() {
                   { label: "Any", value: "Any" },
                   { label: "5+ Yrs", value: "5" },
                   { label: "10+ Yrs", value: "10" },
-                  { label: "15+ Yrs", value: "15" }
+                  { label: "15+ Yrs", value: "15" },
                 ].map((item) => (
                   <button
                     key={item.value}
@@ -227,7 +203,7 @@ export default function FindDoctor() {
                       "rounded-xl py-2 text-[10px] font-semibold border transition",
                       minExp === item.value
                         ? "border-primary bg-primary-soft text-primary shadow-soft"
-                        : "border-border bg-background text-muted-foreground"
+                        : "border-border bg-background text-muted-foreground",
                     )}
                   >
                     {item.label}
@@ -243,7 +219,7 @@ export default function FindDoctor() {
                 {[
                   { label: "Rating", value: "rating" },
                   { label: "Distance", value: "distance" },
-                  { label: "Fee", value: "fee" }
+                  { label: "Fee", value: "fee" },
                 ].map((item) => (
                   <button
                     key={item.value}
@@ -253,7 +229,7 @@ export default function FindDoctor() {
                       "rounded-xl py-2 text-xs font-semibold border transition",
                       sortBy === item.value
                         ? "border-primary bg-primary-soft text-primary shadow-soft"
-                        : "border-border bg-background text-muted-foreground"
+                        : "border-border bg-background text-muted-foreground",
                     )}
                   >
                     {item.label}

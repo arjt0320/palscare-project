@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.time.LocalDateTime;
+
 
 @Service
 @RequiredArgsConstructor
@@ -40,20 +42,28 @@ public class UserService {
         User savedUser = userRepository.save(user);
 
         if (userType == UserType.PATIENT) {
+//            Patient patient = Patient.builder()
+//                    .user(savedUser)
+//                    .name(name)
+//                    .phone(phone)
+//                    .build();
+//            patientRepository.save(patient);
             Patient patient = Patient.builder()
-                    .user(savedUser)
+                    .userUid(savedUser.getOktaUid())
                     .name(name)
                     .phone(phone)
+                    .createdAt(LocalDateTime.now())
                     .build();
-            patientRepository.save(patient);
         } else if (userType == UserType.DOCTOR) {
             Doctor doctor = Doctor.builder()
-                    .user(savedUser)
-                    .name(name)
-                    .specialty("General Practice")
-                    .registrationNumber("REG-" + savedUser.getOktaUid().substring(Math.max(0, savedUser.getOktaUid().length() - 8)))
-                    .verificationStatus(VerificationStatus.PENDING)
-                    .build();
+//                    .user(savedUser)
+//                    .name(name)
+//                    .specialty("General Practice")
+//                    .registrationNumber("REG-" + savedUser.getOktaUid().substring(Math.max(0, savedUser.getOktaUid().length() - 8)))
+//                    .verificationStatus(VerificationStatus.PENDING)
+//                    .build();
+                    .userUid(savedUser.getOktaUid())
+                    .createdAt(LocalDateTime.now());
             doctorRepository.save(doctor);
         }
 
@@ -62,8 +72,9 @@ public class UserService {
 
     @Transactional
     public PatientResponse getPatientProfile(String oktaUid) {
-        Patient patient = patientRepository.findByUserOktaUid(oktaUid)
-                .orElseGet(() -> {
+//        Patient patient = patientRepository.findByUserOktaUid(oktaUid)
+        patientRepository.findByUserUid(oktaUid)
+        .orElseGet(() -> {
                     User user = userRepository.findById(oktaUid)
                             .orElseGet(() -> {
                                 User newUser = User.builder()
@@ -74,7 +85,8 @@ public class UserService {
                                 return userRepository.save(newUser);
                             });
                     Patient p = Patient.builder()
-                            .user(user)
+                            .userUid(user.getOktaUid())
+                            .createdAt(LocalDateTime.now())
                             .name("New Patient")
                             .build();
                     return patientRepository.save(p);
@@ -83,8 +95,9 @@ public class UserService {
     }
 
     @Transactional
-    public Long getPatientId(String oktaUid) {
-        return patientRepository.findByUserOktaUid(oktaUid)
+    public String getPatientId(String oktaUid) {
+//        return patientRepository.findByUserOktaUid(oktaUid)
+        return patientRepository.findByUserUid(oktaUid)
                 .orElseGet(() -> {
                     User user = userRepository.findById(oktaUid)
                             .orElseGet(() -> {
@@ -113,10 +126,12 @@ public class UserService {
             throw new IllegalArgumentException("User is not a patient");
         }
 
-        Patient patient = patientRepository.findByUserOktaUid(oktaUid)
-                .orElse(new Patient());
+//        Patient patient = patientRepository.findByUserOktaUid(oktaUid)
+//                .orElse(new Patient());
+        Patient patient = patientRepository.findByUserUid(oktaUid).orElse(new Patient());
 
-        patient.setUser(user);
+//        patient.setUser(user);
+        patient.setUserUid(user.getOktaUid());
         patient.setName(request.getName());
         patient.setPhone(request.getPhone());
         patient.setDob(request.getDob());
@@ -128,7 +143,8 @@ public class UserService {
 
     @Transactional
     public DoctorResponse getDoctorProfile(String oktaUid) {
-        Doctor doctor = doctorRepository.findByUserOktaUid(oktaUid)
+//        Doctor doctor = doctorRepository.findByUserOktaUid(oktaUid)
+        Doctor doctor = doctorRepository.findByUserUid(oktaUid)
                 .orElseGet(() -> {
                     User user = userRepository.findById(oktaUid)
                             .orElseGet(() -> {
@@ -140,7 +156,8 @@ public class UserService {
                                 return userRepository.save(newUser);
                             });
                     Doctor d = Doctor.builder()
-                            .user(user)
+//                            .user(user)
+                            .user.getOktaUid()
                             .name("New Doctor")
                             .specialty("General Practice")
                             .registrationNumber("REG-" + oktaUid.substring(Math.max(0, oktaUid.length() - 8)))
@@ -227,7 +244,7 @@ public class UserService {
                 .build();
     }
 
-    @Transactional(readOnly = true)
+   // @Transactional(readOnly = true)
     public List<DoctorResponse> getApprovedDoctors(String specialty) {
         List<Doctor> doctors;
         if (specialty != null && !specialty.trim().isEmpty()) {
@@ -238,5 +255,12 @@ public class UserService {
         return doctors.stream()
                 .map(this::mapToDoctorResponse)
                 .collect(Collectors.toList());
+    }
+
+   // @Transactional(readOnly = true)
+    public PatientResponse getPatientById(Long id) {
+        Patient patient = patientRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Patient not found with ID: " + id));
+        return mapToPatientResponse(patient);
     }
 }

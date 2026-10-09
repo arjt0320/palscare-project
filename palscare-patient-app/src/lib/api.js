@@ -1,54 +1,83 @@
-const GATEWAY_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8080";
-
-function getHeaders(path, role = "PATIENT") {
-  const current = localStorage.getItem("palscare-current-user");
-  let userId = role === "PATIENT" ? "okta_pat_123" : "okta_doc_456";
-  let email = role === "PATIENT" ? "patient@test.com" : "doctor@test.com";
-
-  if (current) {
-    try {
-      const parsed = JSON.parse(current);
-      // We will make sure registration sets userId on the session object
-      userId = parsed.userId || userId;
-      email = parsed.email || email;
-    } catch (e) {
-      console.error("Failed to parse session", e);
-    }
-  }
-
-  const headers = {
-    "Content-Type": "application/json",
-    "X-User-Id": userId,
-    "X-User-Role": role,
-    "X-User-Email": email
-  };
-
-  const token = localStorage.getItem("palscare-token");
-  if (token && path && !path.startsWith("/api/v1/auth/")) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
-  return headers;
-}
+/**
+ * PalsCare Mock API Client (Demo Mode)
+ * Replaced all external network fetch calls with local demo responses.
+ */
+import {
+  getCurrentUser,
+  updatePatientProfile,
+  getAppointments,
+  addAppointment,
+  updateAppointmentStatus,
+  doctors,
+  generateDoctorSlots,
+  loginUser,
+  registerUser,
+} from "./mockData";
 
 export async function apiRequest(path, method = "GET", body = null, role = "PATIENT") {
-  const options = {
-    method,
-    headers: getHeaders(path, role)
-  };
-  if (body) {
-    options.body = JSON.stringify(body);
+  // Simulate instant client response without network calls
+  if (path.includes("/auth/login")) {
+    const email = body?.identifier || "alex.morgan@example.com";
+    loginUser(email, body?.password || "password123");
+    const user = getCurrentUser();
+    return {
+      token: "demo_token_" + Date.now(),
+      userId: user.userId || "demo_patient_001",
+      email: user.email,
+      phone: user.phone,
+      name: user.name,
+    };
   }
 
-  const response = await fetch(`${GATEWAY_URL}${path}`, options);
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText || `Request failed with status ${response.status}`);
+  if (path.includes("/auth/register")) {
+    registerUser(body?.name || "Demo Patient", body?.email || "newpatient@test.com", body?.password);
+    const user = getCurrentUser();
+    return {
+      token: "demo_token_" + Date.now(),
+      userId: user.userId || "demo_patient_001",
+      email: user.email,
+      phone: user.phone,
+      name: user.name,
+    };
   }
 
-  if (response.status === 204) {
-    return null;
+  if (path.includes("/patients/profile")) {
+    if (method === "POST" && body) {
+      return updatePatientProfile(body);
+    }
+    return getCurrentUser();
   }
 
-  return response.json();
+  if (path.includes("/patients/doctors") && path.includes("/slots")) {
+    const match = path.match(/doctors\/([^/]+)\/slots/);
+    const docId = match ? match[1] : "d1";
+    return generateDoctorSlots(docId);
+  }
+
+  if (path.includes("/patients/doctors")) {
+    return doctors;
+  }
+
+  if (path.includes("/patients/appointments") && path.includes("/cancel")) {
+    const match = path.match(/appointments\/([^/]+)\/cancel/);
+    if (match) {
+      updateAppointmentStatus(match[1], "cancelled");
+    }
+    return { success: true };
+  }
+
+  if (path.includes("/patients/appointments")) {
+    if (method === "POST" && body) {
+      const appt = addAppointment({
+        reason: body.reason || "Doctor Visit",
+        doctorId: "d1",
+        date: new Date().toISOString().split("T")[0],
+        time: "10:00 AM",
+      });
+      return appt[0];
+    }
+    return getAppointments();
+  }
+
+  return { success: true };
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, Cake, ChevronRight, Droplet, Bell, Lock, Mail, Phone, ShieldCheck, Edit3, X, Save, LogOut } from "lucide-react";
-import { apiRequest } from "@/lib/api";
+import { getCurrentUser, updatePatientProfile, logoutUser } from "@/lib/mockData";
 import { toast } from "sonner";
 
 function Row({ icon, label, value }) {
@@ -16,9 +16,13 @@ function Row({ icon, label, value }) {
   );
 }
 
-function SettingRow({ icon, label }) {
+function SettingRow({ icon, label, onClick }) {
   return (
-    <button type="button" className="flex w-full items-center gap-3 rounded-2xl bg-card px-4 py-3 text-left shadow-soft transition hover:bg-secondary">
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center gap-3 rounded-2xl bg-card px-4 py-3 text-left shadow-soft transition hover:bg-secondary"
+    >
       <div className="grid h-9 w-9 place-items-center rounded-xl bg-secondary">{icon}</div>
       <span className="flex-1 text-sm font-medium">{label}</span>
       <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -27,17 +31,8 @@ function SettingRow({ icon, label }) {
 }
 
 export default function Profile() {
-  const [profileData, setProfileData] = useState(null);
-  const patient = profileData || { name: "User", initials: "U", email: "", phone: "", dob: "", bloodGroup: "", allergies: [] };
-
-  useEffect(() => {
-    apiRequest("/api/v1/patients/profile", "GET", null, "PATIENT")
-      .then((data) => {
-        const initials = data.name ? data.name.split(" ").map(n => n[0]).join("").toUpperCase() : "U";
-        setProfileData({ ...data, initials, allergies: [] });
-      })
-      .catch(err => console.error("Failed to load patient from server", err));
-  }, []);
+  const [profileData, setProfileData] = useState(() => getCurrentUser());
+  const patient = profileData || getCurrentUser();
 
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState("");
@@ -59,9 +54,13 @@ export default function Profile() {
   const navigate = useNavigate();
   const joinDate = "Patient since 2023";
 
+  useEffect(() => {
+    setProfileData(getCurrentUser());
+  }, []);
+
   const handleLogout = () => {
-    localStorage.removeItem("palscare-token");
-    localStorage.removeItem("palscare-current-user");
+    localStorage.setItem("palscare-logged-out", "true");
+    logoutUser();
     toast.success("Logged out successfully");
     navigate("/login");
   };
@@ -71,7 +70,7 @@ export default function Profile() {
     setPhone(patient.phone || "");
     setEmail(patient.email || "");
     setDob(patient.dob || "");
-    setBloodGroup(patient.bloodGroup || "");
+    setBloodGroup(patient.bloodGroup || "O+");
     setAllergies([...(patient.allergies || [])]);
     setEmergencyName(patient.emergencyContact?.name || "");
     setEmergencyRelation(patient.emergencyContact?.relation || "");
@@ -88,17 +87,28 @@ export default function Profile() {
       return;
     }
 
-    apiRequest("/api/v1/patients/profile", "POST", { name, phone, dob, bloodGroup }, "PATIENT")
-      .then((updated) => {
-        const initials = updated.name ? updated.name.split(" ").map(n => n[0]).join("").toUpperCase() : "U";
-        setProfileData({ ...updated, initials, allergies: [] });
-        toast.success("Profile updated successfully!");
-        setIsEditing(false);
-      })
-      .catch((err) => {
-        console.error(err);
-        toast.error("Failed to update profile: " + err.message);
-      });
+    const updated = updatePatientProfile({
+      name,
+      phone,
+      email,
+      dob,
+      bloodGroup,
+      allergies,
+      emergencyContact: {
+        name: emergencyName,
+        relation: emergencyRelation,
+        phone: emergencyPhone,
+      },
+      insurance: {
+        provider: insuranceProvider,
+        plan: insurancePlan,
+        memberId: insuranceId,
+      },
+    });
+
+    setProfileData(updated);
+    toast.success("Profile updated successfully!");
+    setIsEditing(false);
   };
 
   const handleAddAllergy = (e) => {
@@ -123,18 +133,18 @@ export default function Profile() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="grid h-16 w-16 place-items-center rounded-2xl bg-white/20 font-display text-2xl font-semibold ring-2 ring-white/30 backdrop-blur">
-              {patient.initials}
+              {patient.initials || "AM"}
             </div>
             <div>
               <h1 className="font-display text-2xl font-semibold">{patient.name}</h1>
               <p className="text-sm opacity-90">{joinDate}</p>
             </div>
           </div>
-          
+
           <button
             type="button"
             onClick={handleLogout}
-            className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold hover:bg-white/20 transition"
+            className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold hover:bg-white/20 transition backdrop-blur"
           >
             <LogOut className="h-3.5 w-3.5" />
             Logout
@@ -194,7 +204,7 @@ export default function Profile() {
                       onChange={(e) => setBloodGroup(e.target.value)}
                       className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                     >
-                      {["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"].map(bg => (
+                      {["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"].map((bg) => (
                         <option key={bg} value={bg}>{bg}</option>
                       ))}
                     </select>
@@ -256,7 +266,7 @@ export default function Profile() {
                     <label className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">Relation</label>
                     <input
                       type="text"
-                      placeholder="e.g. Spouse, Friend"
+                      placeholder="e.g. Sister, Spouse"
                       value={emergencyRelation}
                       onChange={(e) => setEmergencyRelation(e.target.value)}
                       className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none"
@@ -399,14 +409,22 @@ export default function Profile() {
             </section>
 
             <section className="space-y-2 pt-2">
-              <SettingRow icon={<Bell className="h-4 w-4" />} label="Notifications" />
-              <SettingRow icon={<Lock className="h-4 w-4" />} label="Privacy & security" />
+              <SettingRow
+                icon={<Bell className="h-4 w-4" />}
+                label="Notifications"
+                onClick={() => toast("Notifications", { description: "Manage notifications from the home bell icon." })}
+              />
+              <SettingRow
+                icon={<Lock className="h-4 w-4" />}
+                label="Privacy & security"
+                onClick={() => toast.info("Privacy & security: Demo mode is completely local and private.")}
+              />
             </section>
 
             <section className="rounded-3xl bg-card p-4 shadow-soft">
               <h2 className="mb-2 font-display text-base font-semibold">Medical summary</h2>
               <p className="text-sm text-muted-foreground">
-                Your records, prescriptions, and visit history are stored in the app so you can review them anytime.
+                Your records, prescriptions, and visit history are stored safely in the demo environment for review anytime.
               </p>
             </section>
           </>

@@ -1,17 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Award, Calendar, MapPin, Star, Stethoscope, Video, CreditCard, Fingerprint, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Award, Calendar, MapPin, Star, Stethoscope, Video, ShieldCheck } from "lucide-react";
 import { format } from "date-fns";
-import { addAppointment, findDoctor, patient, apiGetDoctorSlots, apiBookAppointment, apiGetDoctors } from "@/lib/mockData";
+import { findDoctor, apiBookAppointment, generateDoctorSlots } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-
-const timeSlots = ["9:00 AM", "9:30 AM", "10:00 AM", "11:00 AM", "11:30 AM", "1:00 PM", "2:30 PM", "3:00 PM", "4:30 PM", "5:15 PM"];
-
-function formatSlotDate(date) {
-  return format(date, "yyyy-MM-dd");
-}
 
 function Stat({ icon, label, sub }) {
   return (
@@ -47,7 +41,8 @@ function ModeButton({ active, onClick, icon, label, fee }) {
 export default function DoctorDetails() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  const [doctor, setDoctor] = useState(null);
+
+  const [doctor, setDoctor] = useState(() => findDoctor(id));
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
   const [selectedTime, setSelectedTime] = useState(null);
   const [selectedSlotId, setSelectedSlotId] = useState(null);
@@ -59,51 +54,23 @@ export default function DoctorDetails() {
   const [bookingState, setBookingState] = useState("idle"); // "idle" | "verifying" | "success"
 
   useEffect(() => {
-    // Fetch doctor info from backend approved directory list
-    apiGetDoctors().then((data) => {
-      const dbDoc = data.find(d => d.id.toString() === id);
-      if (dbDoc) {
-        const docObj = {
-          id: dbDoc.id.toString(),
-          name: dbDoc.name,
-          specialty: dbDoc.specialty,
-          experience: dbDoc.experienceYears,
-          rating: 4.8,
-          reviews: 120,
-          clinic: dbDoc.university || "PalsCare Clinic",
-          modes: ["in-person"], // force in-person only
-          feeUsd: 80,
-          about: dbDoc.bio || "Primary care physician.",
-          photo: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?q=80&w=256&h=256&fit=crop"
-        };
-        setDoctor(docObj);
-        setSelectedMode("in-person");
-      } else {
-        toast.error("Doctor not found.");
-        navigate("/find");
+    const doc = findDoctor(id);
+    if (doc) {
+      setDoctor(doc);
+      if (doc.modes && doc.modes.length > 0) {
+        setSelectedMode(doc.modes[0]);
       }
-    }).catch(err => {
-      console.error("Failed to load doctor from database", err);
-      toast.error("Failed to load doctor details.");
+      setSlotsList(generateDoctorSlots(doc.id));
+    } else {
+      toast.error("Doctor not found.");
       navigate("/find");
-    });
-  }, [id]);
+    }
+  }, [id, navigate]);
 
   useEffect(() => {
-    if (!doctor) return;
     setSelectedDayIndex(0);
     setSelectedTime(null);
     setSelectedSlotId(null);
-  }, [doctor?.id]);
-
-  useEffect(() => {
-    if (!doctor) return;
-    apiGetDoctorSlots(doctor.id).then((data) => {
-      setSlotsList(data);
-    }).catch(err => {
-      console.error("Failed to load doctor slots from backend", err);
-      setSlotsList([]);
-    });
   }, [doctor?.id]);
 
   const days = useMemo(() => {
@@ -116,7 +83,7 @@ export default function DoctorDetails() {
 
   const handleBookClick = () => {
     if (!selectedTime) {
-      toast.error("Choose a time slot first.");
+      toast.error("Please select a time slot first.");
       return;
     }
     setShowPayment(true);
@@ -126,36 +93,42 @@ export default function DoctorDetails() {
     e.preventDefault();
     setBookingState("verifying");
 
-    // Book slot via backend API
-    apiBookAppointment(selectedSlotId, "Chamber consultation")
-      .then(() => {
-        setTimeout(() => {
-          setBookingState("success");
-          setTimeout(() => {
-            setBookingState("idle");
-            setShowPayment(false);
-            toast.success("Appointment booked successfully!", {
-              description: `${doctor.name} • ${format(days[selectedDayIndex], "EEE, MMM d")} at ${selectedTime}`,
-            });
-            navigate("/appointments");
-          }, 1000);
-        }, 1800);
-      })
-      .catch((err) => {
+    const apptDateStr = format(days[selectedDayIndex], "yyyy-MM-dd");
+    const consultReason = `${selectedMode === "telemedicine" ? "Video Telehealth" : "Clinic Chamber"} consultation`;
+
+    setTimeout(() => {
+      apiBookAppointment(
+        selectedSlotId,
+        consultReason,
+        doctor.id,
+        apptDateStr,
+        selectedTime,
+        selectedMode
+      );
+      setBookingState("success");
+
+      setTimeout(() => {
         setBookingState("idle");
-        toast.error("Booking failed: Slot might have been booked in the meantime.");
-        console.error(err);
-      });
+        setShowPayment(false);
+        toast.success("Appointment booked successfully!", {
+          description: `${doctor.name} • ${format(days[selectedDayIndex], "EEE, MMM d")} at ${selectedTime}`,
+        });
+        navigate("/appointments");
+      }, 700);
+    }, 600);
   };
 
   const availableDaySlots = useMemo(() => {
     const selectedDayName = format(days[selectedDayIndex], "EEEE");
-    return slotsList.filter(slot => 
-      slot.slotDay.toLowerCase() === selectedDayName.toLowerCase() && 
-      !slot.isBooked && 
-      slot.slotMode.toLowerCase() === "chamber"
+    const targetMode = selectedMode === "telemedicine" ? "telemedicine" : "chamber";
+
+    return slotsList.filter(
+      (slot) =>
+        slot.slotDay.toLowerCase() === selectedDayName.toLowerCase() &&
+        !slot.isBooked &&
+        slot.slotMode.toLowerCase() === targetMode
     );
-  }, [slotsList, selectedDayIndex, days]);
+  }, [slotsList, selectedDayIndex, days, selectedMode]);
 
   const formatTimeStr = (timeStr) => {
     try {
@@ -165,7 +138,7 @@ export default function DoctorDetails() {
       hours = hours % 12;
       hours = hours ? hours : 12;
       return `${hours}:${minutesStr} ${ampm}`;
-    } catch (e) {
+    } catch {
       return timeStr;
     }
   };
@@ -178,7 +151,10 @@ export default function DoctorDetails() {
     );
   }
 
-  const currentFee = selectedMode === "telemedicine" && doctor.modes.includes("telemedicine") ? doctor.feeUsd - 10 : doctor.feeUsd;
+  const currentFee =
+    selectedMode === "telemedicine" && doctor.modes.includes("telemedicine")
+      ? Math.max(30, doctor.feeUsd - 10)
+      : doctor.feeUsd;
 
   return (
     <div className="animate-fade-up pb-32">
@@ -205,9 +181,21 @@ export default function DoctorDetails() {
       </div>
 
       <div className="mx-5 mt-5 grid grid-cols-3 gap-2 rounded-2xl bg-card p-3 shadow-soft">
-        <Stat icon={<Star className="h-4 w-4 fill-accent text-accent" />} label={doctor.rating.toFixed(1)} sub={`${doctor.reviews} reviews`} />
-        <Stat icon={<Award className="h-4 w-4 text-primary" />} label={`${doctor.experience} yrs`} sub="experience" />
-        <Stat icon={<MapPin className="h-4 w-4 text-primary" />} label={`${doctor.distanceKm} km`} sub="away" />
+        <Stat
+          icon={<Star className="h-4 w-4 fill-accent text-accent" />}
+          label={doctor.rating.toFixed(1)}
+          sub={`${doctor.reviews} reviews`}
+        />
+        <Stat
+          icon={<Award className="h-4 w-4 text-primary" />}
+          label={`${doctor.experience} yrs`}
+          sub="experience"
+        />
+        <Stat
+          icon={<MapPin className="h-4 w-4 text-primary" />}
+          label={`${doctor.distanceKm} km`}
+          sub="away"
+        />
       </div>
 
       <section className="px-5 py-5">
@@ -215,26 +203,34 @@ export default function DoctorDetails() {
         <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{doctor.about}</p>
       </section>
 
-      {doctor.modes.length > 1 && (
+      {doctor.modes && doctor.modes.length > 1 && (
         <section className="px-5 pb-2">
           <h2 className="font-display text-lg font-semibold">Consultation type</h2>
           <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
             {doctor.modes.includes("in-person") && (
               <ModeButton
                 active={selectedMode === "in-person"}
-                onClick={() => setSelectedMode("in-person")}
+                onClick={() => {
+                  setSelectedMode("in-person");
+                  setSelectedTime(null);
+                  setSelectedSlotId(null);
+                }}
                 icon={<Stethoscope className="h-4 w-4" />}
-                label="In-person"
+                label="In-person Clinic"
                 fee={`$${doctor.feeUsd}`}
               />
             )}
             {doctor.modes.includes("telemedicine") && (
               <ModeButton
                 active={selectedMode === "telemedicine"}
-                onClick={() => setSelectedMode("telemedicine")}
+                onClick={() => {
+                  setSelectedMode("telemedicine");
+                  setSelectedTime(null);
+                  setSelectedSlotId(null);
+                }}
                 icon={<Video className="h-4 w-4" />}
-                label="Video"
-                fee={`$${currentFee}`}
+                label="Video Telehealth"
+                fee={`$${Math.max(30, doctor.feeUsd - 10)}`}
               />
             )}
           </div>
@@ -252,10 +248,16 @@ export default function DoctorDetails() {
             <button
               key={date.toISOString()}
               type="button"
-              onClick={() => setSelectedDayIndex(index)}
+              onClick={() => {
+                setSelectedDayIndex(index);
+                setSelectedTime(null);
+                setSelectedSlotId(null);
+              }}
               className={cn(
                 "flex min-w-[64px] flex-col items-center rounded-2xl border px-3 py-3 text-center transition",
-                selectedDayIndex === index ? "border-primary bg-primary text-primary-foreground shadow-soft" : "border-border bg-card",
+                selectedDayIndex === index
+                  ? "border-primary bg-primary text-primary-foreground shadow-soft"
+                  : "border-border bg-card hover:border-primary/40",
               )}
             >
               <span className="text-[11px] uppercase tracking-wider opacity-80">{format(date, "EEE")}</span>
@@ -280,28 +282,30 @@ export default function DoctorDetails() {
                 }}
                 className={cn(
                   "rounded-2xl border px-3 py-3 text-sm font-medium transition",
-                  selectedSlotId === slot.id ? "border-primary bg-primary-soft text-primary shadow-soft" : "border-border bg-card hover:border-primary/40",
+                  selectedSlotId === slot.id
+                    ? "border-primary bg-primary-soft text-primary shadow-soft"
+                    : "border-border bg-card hover:border-primary/40",
                 )}
               >
-                {timeFormatted} ({slot.slotMode})
+                {timeFormatted}
               </button>
             );
           })}
           {availableDaySlots.length === 0 && (
-            <p className="col-span-2 text-center text-sm text-muted-foreground py-4">No available slots for this day.</p>
+            <p className="col-span-2 text-center text-sm text-muted-foreground py-4">No open slots for this day.</p>
           )}
         </div>
       </section>
 
       <div className="fixed bottom-0 left-1/2 z-30 w-full max-w-md -translate-x-1/2 border-t border-border/60 bg-background/95 px-5 py-4 backdrop-blur">
         <div className="mb-3 flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Fee</span>
-          <span className="font-semibold">${currentFee}</span>
+          <span className="text-muted-foreground">Consultation Fee</span>
+          <span className="font-semibold text-foreground">${currentFee}</span>
         </div>
         <button
           type="button"
           onClick={handleBookClick}
-          className="w-full rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground shadow-soft"
+          className="w-full rounded-2xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground shadow-soft hover:bg-primary/95 transition"
         >
           Book appointment
         </button>
@@ -313,20 +317,16 @@ export default function DoctorDetails() {
           <DialogHeader>
             <DialogTitle className="font-display text-lg font-bold text-foreground">Confirm Appointment</DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              Review your appointment summary and confirm your booking.
+              Review your appointment summary and confirm booking.
             </DialogDescription>
           </DialogHeader>
 
           {bookingState === "verifying" && (
             <div className="flex flex-col items-center justify-center py-8 space-y-4 animate-fade-in">
-              <div className="relative h-20 w-20 flex items-center justify-center rounded-3xl bg-primary-soft/40 border border-primary/20 overflow-hidden shadow-soft">
-                {/* Scanning Laser Line */}
-                <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary shadow-glow animate-scan-line" />
-                <Fingerprint className="h-10 w-10 text-primary animate-pulse" />
-              </div>
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
               <div className="text-center">
-                <p className="font-semibold text-sm text-foreground animate-pulse">Scanning Biometrics...</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Please scan your fingerprint to confirm</p>
+                <p className="font-semibold text-sm text-foreground">Reserving your slot...</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Setting up consultation details</p>
               </div>
             </div>
           )}
@@ -337,8 +337,8 @@ export default function DoctorDetails() {
                 <ShieldCheck className="h-10 w-10 text-success animate-bounce" />
               </div>
               <div className="text-center">
-                <p className="font-semibold text-sm text-foreground">Booking Authorized!</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Identity verified successfully</p>
+                <p className="font-semibold text-sm text-foreground">Booking Confirmed!</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Your appointment has been added to your schedule</p>
               </div>
             </div>
           )}
@@ -352,8 +352,14 @@ export default function DoctorDetails() {
                   <span className="font-semibold text-foreground">{doctor.name}</span>
                 </div>
                 <div className="flex justify-between">
+                  <span className="text-muted-foreground">Specialty</span>
+                  <span className="font-semibold text-foreground">{doctor.specialty}</span>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-muted-foreground">Type</span>
-                  <span className="font-semibold capitalize text-foreground">Clinic Chamber Visit</span>
+                  <span className="font-semibold capitalize text-foreground">
+                    {selectedMode === "telemedicine" ? "Video Telehealth" : "Clinic Chamber Visit"}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Date & Time</span>
@@ -363,11 +369,11 @@ export default function DoctorDetails() {
                 </div>
                 <hr className="border-border" />
                 <div className="flex justify-between text-sm">
-                  <span className="font-bold text-foreground">Consultation Fee</span>
+                  <span className="font-bold text-foreground">Total Fee</span>
                   <span className="font-bold text-primary">${currentFee}</span>
                 </div>
                 <div className="rounded-xl bg-primary-soft/40 p-2.5 text-[10px] text-primary italic leading-tight">
-                  Note: Direct payment has been enabled. No credit card is required. You can settle the fee of ${currentFee} at the clinic.
+                  Demo Mode: Instant confirmation enabled. No credit card is required.
                 </div>
               </div>
 
@@ -376,7 +382,7 @@ export default function DoctorDetails() {
                   type="submit"
                   className="w-full flex items-center justify-center rounded-xl bg-primary py-3 text-xs font-semibold text-primary-foreground shadow-soft hover:bg-primary/95 transition"
                 >
-                  Confirm & Book (Biometric Scan)
+                  Confirm Booking
                 </button>
               </form>
             </>

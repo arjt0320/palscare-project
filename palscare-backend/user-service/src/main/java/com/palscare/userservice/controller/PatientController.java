@@ -45,4 +45,10 @@ public class PatientController {
     public ResponseEntity<Long> getPatientId(@AuthenticationPrincipal GatewayUserPrincipal principal) {
         return ResponseEntity.ok(userService.getPatientId(principal.getUserId()));
     }
+
+    @GetMapping("/internal/{id}")
+    @PreAuthorize("hasRole('DOCTOR') or hasRole('PATIENT')")
+    public ResponseEntity<PatientResponse> getPatientByIdInternal(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.getPatientById(id));
+    }
 }

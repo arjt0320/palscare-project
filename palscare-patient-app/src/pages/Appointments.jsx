@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { Calendar, MoreHorizontal, Stethoscope, Video, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
-import { findDoctor, getAppointments, updateAppointmentStatus, apiGetAppointments, apiCancelAppointment, apiGetDoctors } from "@/lib/mockData";
+import { findDoctor, getAppointments, updateAppointmentStatus } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -12,8 +12,8 @@ function StatusIcon({ status }) {
 
 function getHoursToAppointment(appointmentDateStr, appointmentTimeStr) {
   try {
-    const [datePart] = appointmentDateStr.split("T");
-    const match = appointmentTimeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    const [datePart] = String(appointmentDateStr || "").split("T");
+    const match = String(appointmentTimeStr || "").match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
     if (!match) return 999;
 
     let hours = parseInt(match[1], 10);
@@ -26,14 +26,13 @@ function getHoursToAppointment(appointmentDateStr, appointmentTimeStr) {
       hours = 0;
     }
 
-    const apptDateTime = new Date(`${datePart}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`);
+    const apptDateTime = new Date(`${datePart}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`);
     const now = new Date();
-    
+
     const diffMs = apptDateTime - now;
     const diffHours = diffMs / (1000 * 60 * 60);
     return diffHours;
   } catch (e) {
-    console.error("Error parsing appointment time", e);
     return 999;
   }
 }
@@ -46,7 +45,11 @@ function AppointmentCard({ appointment, onCancelClick, onReschedule }) {
   return (
     <article className="rounded-3xl bg-card p-4 shadow-soft">
       <div className="flex items-start gap-3">
-        <img src={doctorPhoto || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(doctorName || "Doctor")}`} alt={doctorName} className="h-14 w-14 rounded-2xl object-cover ring-2 ring-primary-soft" />
+        <img
+          src={doctorPhoto || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(doctorName || "Doctor")}`}
+          alt={doctorName}
+          className="h-14 w-14 rounded-2xl object-cover ring-2 ring-primary-soft"
+        />
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
@@ -78,7 +81,7 @@ function AppointmentCard({ appointment, onCancelClick, onReschedule }) {
                 appointment.status === "cancelled" && "bg-muted text-muted-foreground",
               )}
             >
-              {appointment.status === "upcoming" ? <Calendar className="h-3 w-3" /> : <Stethoscope className="h-3 w-3" />}
+              <StatusIcon status={appointment.status} />
               {appointment.status}
             </span>
           </div>
@@ -90,14 +93,14 @@ function AppointmentCard({ appointment, onCancelClick, onReschedule }) {
               <button
                 type="button"
                 onClick={() => onReschedule(appointment)}
-                className="rounded-xl border border-border bg-card py-2.5 text-sm font-medium hover:bg-secondary"
+                className="rounded-xl border border-border bg-card py-2.5 text-sm font-medium hover:bg-secondary transition"
               >
                 Reschedule
               </button>
               <button
                 type="button"
                 onClick={() => onCancelClick(appointment)}
-                className="rounded-xl bg-destructive/10 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/15"
+                className="rounded-xl bg-destructive/10 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/15 transition"
               >
                 Cancel
               </button>
@@ -110,7 +113,7 @@ function AppointmentCard({ appointment, onCancelClick, onReschedule }) {
 }
 
 export default function Appointments() {
-  const [appointments, setAppointmentsState] = useState([]);
+  const [appointmentsList, setAppointmentsList] = useState([]);
   const [tab, setTab] = useState("upcoming");
 
   // Cancellation modal states
@@ -119,63 +122,26 @@ export default function Appointments() {
   const [activeAppointment, setActiveAppointment] = useState(null);
   const [isCancelling, setIsCancelling] = useState(false);
 
+  const loadAppointments = () => {
+    const list = getAppointments();
+    setAppointmentsList(list);
+  };
+
   useEffect(() => {
-    // Load database doctors list first
-    apiGetDoctors()
-      .then((docs) => {
-        loadAppointments(docs);
-      })
-      .catch((err) => {
-        console.error("Failed to load doctor list, falling back", err);
-        loadAppointments([]);
-      });
+    loadAppointments();
   }, []);
 
-  const loadAppointments = (docs = []) => {
-    apiGetAppointments().then((data) => {
-      const mapped = data.map(appt => {
-        const dbDoc = docs.find(d => d.id.toString() === appt.doctorId.toString());
-        return {
-          id: appt.id,
-          doctorId: appt.doctorId.toString(),
-          doctorName: dbDoc ? dbDoc.name : "Dr. Consultation Specialist",
-          doctorSpecialty: dbDoc ? dbDoc.specialty : "General Practitioner",
-          doctorPhoto: dbDoc && dbDoc.photo ? dbDoc.photo : "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?q=80&w=256&h=256&fit=crop",
-          date: appt.appointmentDatetime.split("T")[0],
-          time: formatTime(appt.appointmentDatetime),
-          mode: appt.consultationMode === "VIDEO" ? "telemedicine" : "in-person",
-          status: appt.status === "BOOKED" ? "upcoming" : appt.status.toLowerCase(),
-          reason: appt.reason
-        };
-      });
-      setAppointmentsState(mapped);
-    }).catch(err => console.error("Failed to load appointments", err));
-  };
-
-  const formatTime = (datetimeStr) => {
-    try {
-      const timeStr = datetimeStr.split("T")[1];
-      const [hoursStr, minutesStr] = timeStr.split(":");
-      let hours = parseInt(hoursStr, 10);
-      const ampm = hours >= 12 ? "PM" : "AM";
-      hours = hours % 12;
-      hours = hours ? hours : 12;
-      return `${hours}:${minutesStr} ${ampm}`;
-    } catch (e) {
-      return "12:00 PM";
-    }
-  };
-
   const filtered = useMemo(() => {
-    if (tab === "all") return appointments;
-    return appointments.filter((appointment) => appointment.status === tab);
-  }, [appointments, tab]);
+    if (tab === "all") return appointmentsList;
+    return appointmentsList.filter((appointment) => appointment.status === tab);
+  }, [appointmentsList, tab]);
 
   const handleCancelClick = (appointment) => {
     setActiveAppointment(appointment);
     const hoursRemaining = getHoursToAppointment(appointment.date, appointment.time);
 
-    if (hoursRemaining < 4) {
+    // If appointment is in less than 4 hours, trigger cancellation policy block
+    if (hoursRemaining >= 0 && hoursRemaining < 4) {
       setShowBlockedModal(true);
     } else {
       setShowCancelModal(true);
@@ -186,28 +152,23 @@ export default function Appointments() {
     if (!activeAppointment) return;
 
     setIsCancelling(true);
-    apiCancelAppointment(activeAppointment.id)
-      .then(() => {
-        setIsCancelling(false);
-        setShowCancelModal(false);
-        toast.success("Appointment cancelled");
-        loadAppointments();
-        setActiveAppointment(null);
-      })
-      .catch((err) => {
-        setIsCancelling(false);
-        toast.error("Failed to cancel appointment");
-        console.error(err);
-      });
+    setTimeout(() => {
+      updateAppointmentStatus(activeAppointment.id, "cancelled");
+      setIsCancelling(false);
+      setShowCancelModal(false);
+      toast.success("Appointment cancelled successfully");
+      loadAppointments();
+      setActiveAppointment(null);
+    }, 400);
   };
 
   const handleReschedule = (appointment) => {
-    toast("Reschedule", {
-      description: `Open ${findDoctor(appointment.doctorId).name} to pick a new time slot.`,
+    const doc = findDoctor(appointment.doctorId);
+    toast("Reschedule visit", {
+      description: `Open ${doc.name} from Find Doctor to select a new slot.`,
     });
   };
 
-  // Helper values for active modal
   const activeDoctor = activeAppointment ? findDoctor(activeAppointment.doctorId) : null;
 
   return (
@@ -247,7 +208,7 @@ export default function Appointments() {
         ))}
         {filtered.length === 0 && (
           <div className="rounded-3xl bg-card p-8 text-center text-sm text-muted-foreground shadow-soft">
-            No appointments in this section.
+            No {tab} appointments found.
           </div>
         )}
       </section>
@@ -258,7 +219,7 @@ export default function Appointments() {
           <DialogHeader>
             <DialogTitle className="font-display text-lg font-bold text-foreground">Cancel Visit?</DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              This will cancel your scheduled slot. The doctor will be notified.
+              This will cancel your scheduled slot and release it.
             </DialogDescription>
           </DialogHeader>
 
@@ -275,7 +236,7 @@ export default function Appointments() {
               {/* Policy note */}
               <div className="rounded-2xl border border-dashed border-primary/30 bg-primary-soft/30 p-3 text-xs">
                 <p className="text-[11px] text-primary leading-tight">
-                  Note: Cancellations release the chamber slot back to the clinic's availability. Please confirm to proceed.
+                  Note: Cancellations made at least 4 hours ahead are fully confirmed.
                 </p>
               </div>
 
@@ -284,7 +245,7 @@ export default function Appointments() {
                   type="button"
                   onClick={confirmCancellation}
                   disabled={isCancelling}
-                  className="flex-1 flex items-center justify-center rounded-xl bg-destructive py-3 text-xs font-semibold text-destructive-foreground hover:bg-destructive/95 disabled:opacity-75"
+                  className="flex-1 flex items-center justify-center rounded-xl bg-destructive py-3 text-xs font-semibold text-destructive-foreground hover:bg-destructive/95 disabled:opacity-75 transition"
                 >
                   {isCancelling ? (
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-destructive-foreground border-t-transparent" />
@@ -295,7 +256,7 @@ export default function Appointments() {
                 <button
                   type="button"
                   onClick={() => setShowCancelModal(false)}
-                  className="flex-1 rounded-xl border border-border bg-card py-3 text-xs font-semibold text-foreground hover:bg-secondary"
+                  className="flex-1 rounded-xl border border-border bg-card py-3 text-xs font-semibold text-foreground hover:bg-secondary transition"
                 >
                   Keep Booking
                 </button>
@@ -321,18 +282,18 @@ export default function Appointments() {
           {activeAppointment && (
             <div className="mt-3 space-y-4">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Under our cancellation policy, appointments cannot be cancelled or refunded **within 4 hours** of the scheduled time. 
+                Under clinic policy, bookings scheduled within 4 hours cannot be cancelled online.
               </p>
               <div className="rounded-2xl bg-secondary/50 p-3 text-xs space-y-1.5 border border-destructive/10">
-                <p className="font-semibold text-foreground">Policy Constraint:</p>
+                <p className="font-semibold text-foreground">Clinic Policy:</p>
                 <p className="text-muted-foreground leading-snug">
-                  Cancellations are only refundable when processed at least 4 hours prior. Please consult the helpdesk for emergency overrides.
+                  Late cancellations affect emergency queue scheduling. Please reach out to clinic support directly for assistance.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowBlockedModal(false)}
-                className="w-full rounded-xl bg-primary py-3 text-xs font-semibold text-primary-foreground shadow-soft hover:bg-primary/95"
+                className="w-full rounded-xl bg-primary py-3 text-xs font-semibold text-primary-foreground shadow-soft hover:bg-primary/95 transition"
               >
                 Okay, Understood
               </button>
