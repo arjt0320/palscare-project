@@ -102,17 +102,16 @@ export default function DoctorPortal() {
   }, [navigate, activeTab]);
 
   const loadDoctorPortalData = async () => {
-    const sessionStr = localStorage.getItem("palscare-current-user");
-    if (!sessionStr) {
-      toast.error("Please login first.");
+    const isLoggedOut = localStorage.getItem("palscare-doctor-logged-out") === "true";
+    if (isLoggedOut) {
       navigate("/doctor/login");
       return;
     }
 
     const current = await apiGetCurrentDoctor();
-    if (!current || !current.specialty || !current.experience) {
-      toast.error("Please complete onboarding first.");
-      navigate("/doctor/onboarding");
+    if (!current) {
+      toast.error("Please login first.");
+      navigate("/doctor/login");
       return;
     }
 
@@ -123,16 +122,15 @@ export default function DoctorPortal() {
     setEditSpecialty(current.specialty || "");
     setEditUniversity(current.university || "");
     setEditRegNo(current.registrationNumber || "");
-    setEditExperience(current.experience || "1");
+    setEditExperience(current.experience || "8");
     setEditBio(current.about || "");
     setEditPhone(current.phone || "");
 
-    // Load chambers from backend
+    // Load chambers from demo storage
     try {
       const backendChambers = await apiGetChambers();
       if (backendChambers.length === 0) {
-        // preseed first chamber if empty
-        const preseeded = await apiAddChamber("Chembur Chamber", "102, Diamond Plaza, Near Chembur Station, Mumbai");
+        const preseeded = await apiAddChamber("Riverside Family Chamber", "Suite 400, Riverside Medical Plaza, 100 Bayview St");
         setChambers([preseeded]);
         setSelectedChamber(preseeded.name);
       } else {
@@ -144,59 +142,54 @@ export default function DoctorPortal() {
       setChambers([]);
     }
 
-
-
-    // Load appointments matching this doctor from backend database
+    // Load appointments matching this doctor from demo database
     try {
       const apiAppts = await apiGetDoctorAppointments();
-      const mapped = await Promise.all(apiAppts.map(async (a) => {
-        const timePart = a.appointmentDatetime.split("T")[1];
-        let patientName = "Unknown Patient";
-        let patientDetails = null;
-        try {
-          const patientData = await apiRequest("/api/v1/patients/internal/" + a.patientId, "GET", null, "DOCTOR");
-          patientName = patientData.name || ("Patient " + a.patientId);
-          patientDetails = patientData;
-        } catch (e) {
-          console.error("Failed to load patient details for patientId: " + a.patientId, e);
-        }
+      const mapped = apiAppts.map((a) => {
+        const timePart = a.appointmentDatetime ? a.appointmentDatetime.split("T")[1] : null;
+        const timeStr = a.time || (timePart ? formatTimeStr(timePart) : "10:00 AM");
         return {
           id: a.id,
-          date: a.appointmentDatetime.split("T")[0],
-          time: formatTimeStr(timePart),
-          mode: a.consultationMode === "VIDEO" ? "telemedicine" : "in-person",
-          reason: a.reason,
+          date: a.date || (a.appointmentDatetime ? a.appointmentDatetime.split("T")[0] : new Date().toISOString().split("T")[0]),
+          time: timeStr,
+          mode: a.mode || (a.consultationMode === "VIDEO" ? "telemedicine" : "in-person"),
+          reason: a.reason || "Consultation",
           status: a.status === "BOOKED" ? "upcoming" : a.status.toLowerCase(),
-          patientId: a.patientId,
-          patientName: patientName,
-          patientDetails: patientDetails
+          patientId: a.patientId || "p1",
+          patientName: a.patientName || "Alex Morgan",
+          patientDetails: a.patientDetails || {
+            name: a.patientName || "Alex Morgan",
+            dob: "1991-08-14",
+            gender: "Female",
+            bloodGroup: "O+",
+            phone: "+1 (415) 555-0142",
+            allergies: ["Penicillin", "Peanuts"],
+          },
         };
-      }));
+      });
       setAppointments(mapped);
     } catch (err) {
-      console.error("Failed to load doctor appointments from backend", err);
+      console.error("Failed to load doctor appointments", err);
       setAppointments([]);
     }
 
-    // Load slots from backend
+    // Load slots
     loadDoctorSlots();
   };
 
   const loadDoctorSlots = () => {
     apiGetDoctorSlots().then((data) => {
-      // Map backend slots to component structure:
-      // slotDay -> day, startTime -> time (formatted e.g. "09:00 AM"), slotMode -> mode (lowercase)
-      const mapped = data.map(s => ({
+      const mapped = data.map((s) => ({
         id: s.id,
         day: s.slotDay,
-        time: formatTimeStr(s.startTime),
-        mode: s.slotMode.toLowerCase(),
-        chamberName: s.chamber ? s.chamber.name : "",
+        time: s.startTime,
+        mode: (s.slotMode || "chamber").toLowerCase(),
+        chamberName: s.chamber ? s.chamber.name : "Clinic",
         isBooked: s.isBooked,
-        patientName: s.isBooked ? "Patient User" : ""
+        patientName: s.patientName || (s.isBooked ? "Alex Morgan" : ""),
       }));
       setSlots(mapped);
-    }).catch(err => console.error("Failed to load doctor slots", err));
+    }).catch((err) => console.error("Failed to load doctor slots", err));
   };
 
   const formatTimeStr = (timeStr) => {

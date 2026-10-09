@@ -1,64 +1,77 @@
-const GATEWAY_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8080";
-
-function getHeaders(path, role = "DOCTOR") {
-  const current = localStorage.getItem("palscare-current-user");
-  let userId = "okta_doc_456";
-  let email = "doctor@test.com";
-
-  if (current) {
-    try {
-      const parsed = JSON.parse(current);
-      userId = parsed.userId || userId;
-      email = parsed.email || email;
-    } catch (e) {
-      console.error("Failed to parse session", e);
-    }
-  }
-
-  const headers = {
-    "Content-Type": "application/json",
-    "X-User-Id": userId,
-    "X-User-Role": role,
-    "X-User-Email": email
-  };
-
-  const token = localStorage.getItem("palscare-token");
-  if (token && path && !path.startsWith("/api/v1/auth/")) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
-  return headers;
-}
+/**
+ * PalsCare Doctor Mock API Client (Demo Mode)
+ * Replaced all external network fetch calls with local demo responses.
+ */
+import {
+  getCurrentDoctor,
+  updateDoctorProfile,
+  getAppointments,
+  getChambers,
+  addChamber,
+} from "./mockData";
 
 export async function apiRequest(path, method = "GET", body = null, role = "DOCTOR") {
-  const options = {
-    method,
-    headers: getHeaders(path, role)
-  };
-  if (body) {
-    options.body = JSON.stringify(body);
+  if (path.includes("/auth/login")) {
+    const doc = getCurrentDoctor();
+    return {
+      token: "demo_doctor_token_" + Date.now(),
+      userId: doc.id || "d1",
+      email: doc.email || "dr.amara.patel@palscare.com",
+      phone: doc.phone || "+1 (415) 555-0199",
+      name: doc.name || "Dr. Amara Patel",
+    };
   }
 
-  const response = await fetch(`${GATEWAY_URL}${path}`, options);
-  if (!response.ok) {
-    let errorMessage = `Request failed with status ${response.status}`;
-    try {
-      // Try parsing as JSON first
-      const errorJson = await response.json();
-      if (errorJson && errorJson.message) {
-        errorMessage = errorJson.message;
-      } else if (errorJson && errorJson.error) {
-        errorMessage = errorJson.error;
-      }
-    } catch (e) {
-      // Fallback if not JSON
+  if (path.includes("/auth/register")) {
+    const doc = updateDoctorProfile(body || {});
+    return {
+      token: "demo_doctor_token_" + Date.now(),
+      userId: doc.id || "d1",
+      email: doc.email || "doctor@palscare.com",
+      phone: doc.phone || "+1 (415) 555-0199",
+      name: doc.name || "Dr. New Doctor",
+    };
+  }
+
+  if (path.includes("/doctors/profile")) {
+    return getCurrentDoctor();
+  }
+
+  if (path.includes("/doctors/onboarding")) {
+    if (method === "POST" && body) {
+      return updateDoctorProfile(body);
     }
-    throw new Error(errorMessage);
+    return getCurrentDoctor();
   }
 
-  if (response.status === 204) {
-    return null;
+  if (path.includes("/patients/internal/")) {
+    const match = path.match(/\/patients\/internal\/(.*)/);
+    const pid = match ? match[1] : "p1";
+    const appts = getAppointments();
+    const appt = appts.find((a) => a.patientId === pid);
+    if (appt && appt.patientDetails) {
+      return appt.patientDetails;
+    }
+    return {
+      name: "Alex Morgan",
+      dob: "1991-08-14",
+      gender: "Female",
+      bloodGroup: "O+",
+      phone: "+1 (415) 555-0142",
+      allergies: ["Penicillin", "Peanuts"],
+    };
   }
 
-  return response.json();
+  if (path.includes("/doctors/chambers")) {
+    if (method === "POST" && body) {
+      return addChamber(body.name, body.address);
+    }
+    return getChambers();
+  }
+
+  if (path.includes("/appointments/doctor")) {
+    return getAppointments();
+  }
+
+  return { success: true };
 }
