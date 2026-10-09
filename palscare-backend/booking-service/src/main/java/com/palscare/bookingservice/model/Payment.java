@@ -1,11 +1,20 @@
 package com.palscare.bookingservice.model;
 
-import jakarta.persistence.*;
 import lombok.*;
-import java.math.BigDecimal;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-@Entity
-@Table(name = "payments")
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+/**
+ * Step 1: Payment Document Entity for MongoDB.
+ * Represents a financial billing or mock transaction record associated with an appointment.
+ * Backed by the 'payments' collection in MongoDB.
+ */
+@Document(collection = "payments")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -13,31 +22,56 @@ import java.math.BigDecimal;
 @Builder
 public class Payment {
 
+    /**
+     * Step 2: Primary document ID in MongoDB.
+     */
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "appointment_id", referencedColumnName = "id", nullable = false)
-    private Appointment appointment;
+    /**
+     * Step 3: Reference to the associated Appointment String ID.
+     */
+    @Indexed
+    private String appointmentId;
 
-    @Column(name = "transaction_id", unique = true, nullable = false, length = 100)
+    /**
+     * Step 4: External or mock payment gateway transaction identifier.
+     */
+    @Indexed(unique = true)
     private String transactionId;
 
-    @Column(nullable = false, precision = 10, scale = 2)
+    /**
+     * Step 5: Total consultation fee charged.
+     */
     private BigDecimal amount;
 
-    @Column(name = "platform_fee", nullable = false, precision = 10, scale = 2)
+    /**
+     * Step 6: Platform service fee portion.
+     */
     private BigDecimal platformFee;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "payment_status", nullable = false, length = 20)
+    /**
+     * Step 7: Current transaction status (SUCCESS, FAILED, REFUNDED).
+     */
     private PaymentStatus paymentStatus;
 
-    @PrePersist
-    protected void onCreate() {
-        if (paymentStatus == null) {
-            paymentStatus = PaymentStatus.SUCCESS;
+    /**
+     * Step 8: Transaction timestamp.
+     */
+    private LocalDateTime createdAt;
+
+    /**
+     * Step 9: Lifecycle initialization helper.
+     */
+    public void initializeDefaults() {
+        if (this.id == null || this.id.trim().isEmpty()) {
+            this.id = UUID.randomUUID().toString();
+        }
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
+        }
+        if (this.paymentStatus == null) {
+            this.paymentStatus = PaymentStatus.SUCCESS;
         }
     }
 }

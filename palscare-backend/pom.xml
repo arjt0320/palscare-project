@@ -2,24 +2,34 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <!-- ======================================================================= -->
+    <!-- PalsCare Microservices - Root Parent Project Object Model (POM)         -->
+    <!-- Purpose: Declares project modules, shared versions, and compiler plugins -->
+    <!-- ======================================================================= -->
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.palscare</groupId>
     <artifactId>palscare-backend</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>palscare-backend</name>
-    <description>Root parent POM for PalsCare microservices</description>
+    <description>Root parent POM for PalsCare microservices ecosystem backed by MongoDB</description>
+
+    <!-- Step 1: Spring Boot Parent Starter for standardized defaults -->
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.3.1</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
+
+    <!-- Step 2: Global build properties and dependency version alignment -->
     <properties>
         <java.version>17</java.version>
         <spring-cloud.version>2023.0.2</spring-cloud.version>
-        <lombok.version>1.18.34</lombok.version>
+        <lombok.version>1.18.42</lombok.version>
     </properties>
+
+    <!-- Step 3: Microservice sub-modules registered in reactor build order -->
     <modules>
         <module>discovery-server</module>
         <module>api-gateway</module>
@@ -27,6 +37,8 @@
         <module>doctor-slot-service</module>
         <module>booking-service</module>
     </modules>
+
+    <!-- Step 4: Spring Cloud BOM dependency management -->
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -38,17 +50,35 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <!-- Step 5: Global build plugin management across all child modules -->
     <build>
         <pluginManagement>
             <plugins>
+                <!-- Step 5.1: Spring Boot Maven packaging plugin -->
                 <plugin>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
                 </plugin>
+
+                <!-- Step 5.2: Java compiler plugin with Lombok annotation processor & modern JDK support -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <configuration>
+                        <fork>true</fork>
+                        <compilerArgs>
+                            <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED</arg>
+                            <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED</arg>
+                            <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>
+                            <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED</arg>
+                            <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED</arg>
+                            <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED</arg>
+                            <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED</arg>
+                            <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</arg>
+                            <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>
+                            <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.jvm=ALL-UNNAMED</arg>
+                        </compilerArgs>
                         <annotationProcessorPaths>
                             <path>
                                 <groupId>org.projectlombok</groupId>

@@ -10,8 +10,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
+/**
+ * Step 1: Appointment Controller REST endpoints.
+ * Handles appointment creation, cancellations, and schedule lookups in MongoDB.
+ */
 @RestController
 @RequestMapping("/api/v1/patients/appointments")
 @RequiredArgsConstructor
@@ -19,6 +24,9 @@ public class AppointmentController {
 
     private final AppointmentService appointmentService;
 
+    /**
+     * Step 2: Book a new appointment in MongoDB.
+     */
     @PostMapping
     @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<AppointmentResponse> createAppointment(
@@ -27,14 +35,20 @@ public class AppointmentController {
         return ResponseEntity.ok(appointmentService.createAppointment(principal.getUserId(), request));
     }
 
+    /**
+     * Step 3: Cancel an existing appointment by its MongoDB String ID.
+     */
     @PostMapping("/{id}/cancel")
     @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<AppointmentResponse> cancelAppointment(
             @AuthenticationPrincipal GatewayUserPrincipal principal,
-            @PathVariable Long id) {
+            @PathVariable String id) {
         return ResponseEntity.ok(appointmentService.cancelAppointment(principal.getUserId(), id));
     }
 
+    /**
+     * Step 4: Query all appointments for the current authenticated patient from MongoDB.
+     */
     @GetMapping
     @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<List<AppointmentResponse>> getAppointments(
@@ -42,6 +56,9 @@ public class AppointmentController {
         return ResponseEntity.ok(appointmentService.getPatientAppointments(principal.getUserId()));
     }
 
+    /**
+     * Step 5: Query all appointments for the current authenticated doctor from MongoDB.
+     */
     @GetMapping("/doctor")
     @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<List<AppointmentResponse>> getDoctorAppointments(

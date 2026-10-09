@@ -1,11 +1,19 @@
 package com.palscare.doctorslotservice.model;
 
-import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-@Entity
-@Table(name = "chambers")
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+/**
+ * Step 1: Chamber Document Entity for MongoDB.
+ * Represents a physical consultation clinic/chamber where a doctor practices.
+ * Backed by the 'chambers' collection in MongoDB.
+ */
+@Document(collection = "chambers")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -13,24 +21,42 @@ import java.time.LocalDateTime;
 @Builder
 public class Chamber {
 
+    /**
+     * Step 2: Primary document ID in MongoDB.
+     */
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @Column(name = "doctor_id", nullable = false)
-    private Long doctorId; // Logical reference to user-service Doctor ID
+    /**
+     * Step 3: Reference to the doctor's internal String ID from user-service.
+     */
+    @Indexed
+    private String doctorId;
 
-    @Column(nullable = false, length = 100)
+    /**
+     * Step 4: Display name of the chamber or clinic.
+     */
     private String name;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    /**
+     * Step 5: Physical address / suite location of the clinic.
+     */
     private String address;
 
-    @Column(name = "created_at", updatable = false)
+    /**
+     * Step 6: Registration timestamp.
+     */
     private LocalDateTime createdAt;
 
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
+    /**
+     * Step 7: Lifecycle initialization helper.
+     */
+    public void initializeDefaults() {
+        if (this.id == null || this.id.trim().isEmpty()) {
+            this.id = UUID.randomUUID().toString();
+        }
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
+        }
     }
 }

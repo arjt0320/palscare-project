@@ -274,7 +274,10 @@ export function getAppointments() {
     window.localStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(seed));
     return seed;
   }
-  return parsed;
+  return parsed.map((a) => ({
+    ...a,
+    status: a && a.status != null ? String(a.status).toLowerCase() : "upcoming",
+  }));
 }
 
 export function setAppointments(nextAppointments) {

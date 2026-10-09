@@ -1,11 +1,19 @@
+# ==============================================================================
+# PalsCare - Eureka Service Discovery Registry Server Configuration
+# ==============================================================================
+
+# Step 1: Default Eureka Registry port
 server:
   port: 8761
 
+# Step 2: Eureka standalone server configuration
 eureka:
   instance:
     hostname: localhost
   client:
+    # Do not register the discovery server with itself
     register-with-eureka: false
+    # Do not fetch registry cache as this is the primary registry authority
     fetch-registry: false
     service-url:
       defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/

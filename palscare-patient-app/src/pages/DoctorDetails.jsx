@@ -124,9 +124,10 @@ export default function DoctorDetails() {
 
     return slotsList.filter(
       (slot) =>
-        slot.slotDay.toLowerCase() === selectedDayName.toLowerCase() &&
+        slot &&
+        String(slot.slotDay || "").toLowerCase() === selectedDayName.toLowerCase() &&
         !slot.isBooked &&
-        slot.slotMode.toLowerCase() === targetMode
+        String(slot.slotMode || "").toLowerCase() === targetMode
     );
   }, [slotsList, selectedDayIndex, days, selectedMode]);
 

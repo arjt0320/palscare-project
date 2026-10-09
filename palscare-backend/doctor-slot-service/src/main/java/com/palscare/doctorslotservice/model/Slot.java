@@ -1,11 +1,26 @@
 package com.palscare.doctorslotservice.model;
 
-import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalTime;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Version;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.CompoundIndexes;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-@Entity
-@Table(name = "slots")
+import java.time.LocalTime;
+import java.util.UUID;
+
+/**
+ * Step 1: Slot Document Entity for MongoDB.
+ * Represents an individual bookable appointment time slot in a doctor's weekly recurring schedule.
+ * Backed by the 'slots' collection in MongoDB.
+ */
+@Document(collection = "slots")
+@CompoundIndexes({
+    // Step 2: Index to optimize querying available slots by doctor, day, and booking status
+    @CompoundIndex(name = "doctor_day_booked_idx", def = "{'doctorId': 1, 'slotDay': 1, 'isBooked': 1}")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -13,37 +28,65 @@ import java.time.LocalTime;
 @Builder
 public class Slot {
 
+    /**
+     * Step 3: Primary document ID in MongoDB.
+     */
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @Column(name = "doctor_id", nullable = false)
-    private Long doctorId; // Logical reference to user-service Doctor ID
+    /**
+     * Step 4: Logical reference to the doctor's internal String ID.
+     */
+    @Indexed
+    private String doctorId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "chamber_id")
-    private Chamber chamber; // Null indicates Video Consult
+    /**
+     * Step 5: Embedded chamber snapshot (null indicates video / telemedicine consult).
+     */
+    private Chamber chamber;
 
-    @Column(name = "slot_day", nullable = false, length = 20)
-    private String slotDay; // e.g. 'Monday', 'Tuesday'
+    /**
+     * Step 6: Day of the week for recurring schedule (e.g., 'Monday', 'Tuesday').
+     */
+    private String slotDay;
 
-    @Column(name = "start_time", nullable = false)
+    /**
+     * Step 7: Starting time of the consultation slot (e.g., 09:00:00).
+     */
     private LocalTime startTime;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "slot_mode", nullable = false, length = 20)
+    /**
+     * Step 8: Ending time of the consultation slot (e.g., 09:30:00).
+     */
+    private LocalTime endTime;
+
+    /**
+     * Step 9: Mode of consultation (CHAMBER or VIDEO).
+     */
     private SlotMode slotMode;
 
-    @Column(name = "is_booked")
+    /**
+     * Step 10: Boolean flag indicating if this slot has already been reserved.
+     */
+    @Indexed
     private Boolean isBooked;
 
+    /**
+     * Step 11: Optimistic locking version tag to prevent concurrent double-booking.
+     * Spring Data MongoDB automatically increments this on every save.
+     */
     @Version
-    private Integer version; // Optimistic locking tag
+    private Integer version;
 
-    @PrePersist
-    protected void onCreate() {
-        if (isBooked == null) {
-            isBooked = false;
+    /**
+     * Step 12: Lifecycle initialization helper.
+     */
+    public void initializeDefaults() {
+        if (this.id == null || this.id.trim().isEmpty()) {
+            this.id = UUID.randomUUID().toString();
+        }
+        if (this.isBooked == null) {
+            this.isBooked = false;
         }
     }
 }

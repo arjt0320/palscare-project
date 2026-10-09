@@ -1,11 +1,26 @@
 package com.palscare.bookingservice.model;
 
-import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.CompoundIndexes;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-@Entity
-@Table(name = "appointments")
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+/**
+ * Step 1: Appointment Document Entity for MongoDB.
+ * Represents a consultation appointment booked between a patient and a doctor.
+ * Backed by the 'appointments' collection in MongoDB.
+ */
+@Document(collection = "appointments")
+@CompoundIndexes({
+    // Step 2: Index to optimize querying appointments by patient or doctor by date
+    @CompoundIndex(name = "patient_datetime_idx", def = "{'patientId': 1, 'appointmentDatetime': -1}"),
+    @CompoundIndex(name = "doctor_datetime_idx", def = "{'doctorId': 1, 'appointmentDatetime': -1}")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -13,41 +28,69 @@ import java.time.LocalDateTime;
 @Builder
 public class Appointment {
 
+    /**
+     * Step 3: Primary document ID in MongoDB.
+     */
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @Column(name = "patient_id", nullable = false)
-    private Long patientId; // Logical reference to user-service Patient ID
+    /**
+     * Step 4: Logical reference to patient's internal String ID from user-service.
+     */
+    @Indexed
+    private String patientId;
 
-    @Column(name = "doctor_id", nullable = false)
-    private Long doctorId; // Logical reference to user-service Doctor ID
+    /**
+     * Step 5: Logical reference to doctor's internal String ID from user-service.
+     */
+    @Indexed
+    private String doctorId;
 
-    @Column(name = "slot_id", unique = true, nullable = false)
-    private Long slotId; // Logical reference to doctor-slot-service Slot ID
+    /**
+     * Step 6: Logical reference to slot's internal String ID from doctor-slot-service.
+     * Enforced unique to prevent double-booking the same slot.
+     */
+    @Indexed(unique = true)
+    private String slotId;
 
-    @Column(name = "booking_date", updatable = false)
+    /**
+     * Step 7: Timestamp when the booking was submitted.
+     */
     private LocalDateTime bookingDate;
 
-    @Column(name = "appointment_datetime", nullable = false)
+    /**
+     * Step 8: Scheduled date and time of the actual consultation.
+     */
     private LocalDateTime appointmentDatetime;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    /**
+     * Step 9: Appointment status (BOOKED, COMPLETED, CANCELLED).
+     */
+    @Indexed
     private AppointmentStatus status;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "consultation_mode", nullable = false, length = 20)
+    /**
+     * Step 10: Consultation mode (CHAMBER or VIDEO).
+     */
     private ConsultationMode consultationMode;
 
-    @Column(columnDefinition = "TEXT")
+    /**
+     * Step 11: Patient's stated medical reason or symptoms for the appointment.
+     */
     private String reason;
 
-    @PrePersist
-    protected void onCreate() {
-        bookingDate = LocalDateTime.now();
-        if (status == null) {
-            status = AppointmentStatus.BOOKED;
+    /**
+     * Step 12: Lifecycle initialization helper.
+     */
+    public void initializeDefaults() {
+        if (this.id == null || this.id.trim().isEmpty()) {
+            this.id = UUID.randomUUID().toString();
+        }
+        if (this.bookingDate == null) {
+            this.bookingDate = LocalDateTime.now();
+        }
+        if (this.status == null) {
+            this.status = AppointmentStatus.BOOKED;
         }
     }
 }

@@ -25,12 +25,12 @@ export default function FindDoctor() {
 
   const filteredDoctors = useMemo(() => {
     let result = doctors.filter((doctor) => {
-      const matchSpecialty = active === "All" || doctor.specialty.toLowerCase() === active.toLowerCase();
+      const matchSpecialty = active === "All" || String(doctor.specialty || "").toLowerCase() === active.toLowerCase();
       const matchQuery =
         !query ||
-        doctor.name.toLowerCase().includes(query.toLowerCase()) ||
-        doctor.specialty.toLowerCase().includes(query.toLowerCase()) ||
-        (doctor.clinic && doctor.clinic.toLowerCase().includes(query.toLowerCase()));
+        String(doctor.name || "").toLowerCase().includes(query.toLowerCase()) ||
+        String(doctor.specialty || "").toLowerCase().includes(query.toLowerCase()) ||
+        (doctor.clinic && String(doctor.clinic).toLowerCase().includes(query.toLowerCase()));
 
       const matchFee =
         maxFee === "Any" ||

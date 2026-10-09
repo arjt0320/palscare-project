@@ -144,17 +144,20 @@ export default function DoctorPortal() {
 
     // Load appointments matching this doctor from demo database
     try {
-      const apiAppts = await apiGetDoctorAppointments();
+      const apiAppts = (await apiGetDoctorAppointments()) || [];
       const mapped = apiAppts.map((a) => {
         const timePart = a.appointmentDatetime ? a.appointmentDatetime.split("T")[1] : null;
         const timeStr = a.time || (timePart ? formatTimeStr(timePart) : "10:00 AM");
+        const rawStatus = a && a.status != null ? String(a.status).trim().toLowerCase() : "upcoming";
+        const normalizedStatus = rawStatus === "booked" ? "upcoming" : rawStatus;
+
         return {
-          id: a.id,
+          id: a.id || `appt_${Math.random()}`,
           date: a.date || (a.appointmentDatetime ? a.appointmentDatetime.split("T")[0] : new Date().toISOString().split("T")[0]),
           time: timeStr,
-          mode: a.mode || (a.consultationMode === "VIDEO" ? "telemedicine" : "in-person"),
+          mode: a.mode || (a.consultationMode === "VIDEO" ? "telemedicine" : "in-person") || "in-person",
           reason: a.reason || "Consultation",
-          status: a.status === "BOOKED" ? "upcoming" : a.status.toLowerCase(),
+          status: normalizedStatus,
           patientId: a.patientId || "p1",
           patientName: a.patientName || "Alex Morgan",
           patientDetails: a.patientDetails || {
@@ -179,13 +182,13 @@ export default function DoctorPortal() {
 
   const loadDoctorSlots = () => {
     apiGetDoctorSlots().then((data) => {
-      const mapped = data.map((s) => ({
+      const mapped = (data || []).map((s) => ({
         id: s.id,
         day: s.slotDay,
         time: s.startTime,
-        mode: (s.slotMode || "chamber").toLowerCase(),
+        mode: (s.slotMode ? String(s.slotMode).toLowerCase() : "chamber"),
         chamberName: s.chamber ? s.chamber.name : "Clinic",
-        isBooked: s.isBooked,
+        isBooked: Boolean(s.isBooked),
         patientName: s.patientName || (s.isBooked ? "Alex Morgan" : ""),
       }));
       setSlots(mapped);

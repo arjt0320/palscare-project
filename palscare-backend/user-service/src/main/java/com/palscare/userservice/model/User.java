@@ -1,6 +1,5 @@
 package com.palscare.userservice.model;
 
-//import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
@@ -10,62 +9,66 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-//@Entity
-//@Table(name = "users", uniqueConstraints = {
-//    @UniqueConstraint(columnNames = {"email", "user_type"}),
-//    @UniqueConstraint(columnNames = {"phone", "user_type"})
-//})
-
-// for mongodb setup
-//======================
+/**
+ * Step 1: User Document Entity for MongoDB.
+ * Represents registered users (both DOCTOR and PATIENT).
+ * Backed by the 'users' MongoDB collection.
+ */
 @Document(collection = "users")
 @CompoundIndexes({
-        @CompoundIndex(name = "email_userType_idx", def = "{'email': 1, 'userType': 1}", unique = true),
-        @CompoundIndex(name = "phone_userType_idx", def = "{'phone': 1, 'userType': 1}", unique = true)
+    // Step 2: Ensure unique email per user type (e.g. same email cannot register twice as PATIENT)
+    @CompoundIndex(name = "email_userType_idx", def = "{'email': 1, 'userType': 1}", unique = true),
+    // Step 3: Ensure unique phone number per user type (sparse allows multiple users without phone)
+    @CompoundIndex(name = "phone_userType_idx", def = "{'phone': 1, 'userType': 1}", unique = true, sparse = true)
 })
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class  User {
+public class User {
 
+    /**
+     * Step 4: Primary Document Identifier.
+     * Uses oktaUid (UUID string) as the document ID in MongoDB.
+     */
     @Id
-//    @Column(name = "okta_uid", length = 128)
     private String oktaUid;
 
-//    @Column(nullable = false, length = 100)
+    /**
+     * Step 5: Email address for authentication and notifications.
+     */
     private String email;
 
-//    @Column(length = 20)
+    /**
+     * Step 6: Contact phone number.
+     */
     private String phone;
 
-//    @Column(length = 255)
+    /**
+     * Step 7: BCrypt hashed password for secure login.
+     */
     private String password;
 
-//    @Enumerated(EnumType.STRING)
-//    @Column(name = "user_type", nullable = false, length = 20)
+    /**
+     * Step 8: Role designation (PATIENT, DOCTOR, or ADMIN).
+     */
     private UserType userType;
 
-//    @Column(name = "created_at", updatable = false)
+    /**
+     * Step 9: Timestamp when the user account was created.
+     */
     private LocalDateTime createdAt;
 
-//    @PrePersist
-//    protected void onCreate() {
-//        createdAt = LocalDateTime.now();
-//        if (oktaUid == null) {
-//            oktaUid = java.util.UUID.randomUUID().toString();
-//        }
-//    }
-
-    public void initialize() {
-
-        if (oktaUid == null) {
-            oktaUid = UUID.randomUUID().toString();
+    /**
+     * Step 10: Lifecycle helper method to set initial default values before persistence.
+     */
+    public void initializeDefaults() {
+        if (this.oktaUid == null || this.oktaUid.trim().isEmpty()) {
+            this.oktaUid = UUID.randomUUID().toString();
         }
-
-        if (createdAt == null) {
-            createdAt = LocalDateTime.now();
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
         }
     }
 }

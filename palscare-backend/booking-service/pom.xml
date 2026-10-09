@@ -2,8 +2,14 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <!-- ======================================================================= -->
+    <!-- PalsCare - Booking Service POM Configuration                            -->
+    <!-- Purpose: Microservice managing appointment scheduling and simulated     -->
+    <!-- payment transactions backed by MongoDB NoSQL database.                  -->
+    <!-- ======================================================================= -->
     <modelVersion>4.0.0</modelVersion>
 
+    <!-- Step 1: Parent module inheritance -->
     <parent>
         <groupId>com.palscare</groupId>
         <artifactId>palscare-backend</artifactId>
@@ -13,39 +19,47 @@
 
     <artifactId>booking-service</artifactId>
     <name>booking-service</name>
-    <description>Appointment booking and payment microservice for PalsCare</description>
+    <description>Appointment booking and payment microservice backed by MongoDB</description>
 
     <dependencies>
+        <!-- Step 2: Spring Web Starter for REST API endpoints -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+
+        <!-- Step 3: Spring Data MongoDB - NoSQL data access replacing SQL/JPA -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
+            <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
+
+        <!-- Step 4: Spring Security for role authorization -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
+
+        <!-- Step 5: Jakarta validation constraints -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
+
+        <!-- Step 6: Eureka discovery client -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <scope>runtime</scope>
-        </dependency>
+
+        <!-- Step 7: Lombok for boilerplate reduction -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
+
+        <!-- Step 8: Spring Boot testing suite -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -55,10 +69,12 @@
 
     <build>
         <plugins>
+            <!-- Step 9: Spring Boot Maven packaging plugin -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <!-- Step 10: Compiler plugin for Java 17 compatibility -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

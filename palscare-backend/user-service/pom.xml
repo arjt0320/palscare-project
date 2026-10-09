@@ -2,8 +2,14 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <!-- ======================================================================= -->
+    <!-- PalsCare - User Service POM Configuration                               -->
+    <!-- Purpose: Microservice managing authentication, user accounts, doctor     -->
+    <!-- profiles, and patient health profiles backed by MongoDB NoSQL database. -->
+    <!-- ======================================================================= -->
     <modelVersion>4.0.0</modelVersion>
 
+    <!-- Step 1: Inherit configuration and dependency versions from root parent -->
     <parent>
         <groupId>com.palscare</groupId>
         <artifactId>palscare-backend</artifactId>
@@ -13,46 +19,47 @@
 
     <artifactId>user-service</artifactId>
     <name>user-service</name>
-    <description>User profile microservice for PalsCare</description>
+    <description>User profile, authentication, and directory microservice backed by MongoDB</description>
 
     <dependencies>
+        <!-- Step 2: Spring Web Starter for REST API endpoints and controllers -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>org.springframework.boot</groupId>-->
-<!--            <artifactId>spring-boot-starter-data-jpa</artifactId>-->
-<!--        </dependency>-->
+
+        <!-- Step 3: Spring Security for password hashing and request authorization -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
+
+        <!-- Step 4: Jakarta Validation for DTO request validation constraints -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
+
+        <!-- Step 5: Eureka Client for service discovery and registry registration -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
         </dependency>
 
-<!--        for mongodb setup -->
+        <!-- Step 6: Spring Data MongoDB - NoSQL data access layer replacing SQL/JPA -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
 
-<!--        <dependency>-->
-<!--            <groupId>org.postgresql</groupId>-->
-<!--            <artifactId>postgresql</artifactId>-->
-<!--            <scope>runtime</scope>-->
-<!--        </dependency>-->
+        <!-- Step 7: Lombok for automated getters, setters, builders, and constructors -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
+
+        <!-- Step 8: JSON Web Token (JJWT) libraries for token generation and verification -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
@@ -70,6 +77,8 @@
             <version>0.11.5</version>
             <scope>runtime</scope>
         </dependency>
+
+        <!-- Step 9: Testing Starter for unit and integration testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -79,10 +88,12 @@
 
     <build>
         <plugins>
+            <!-- Step 10: Spring Boot Maven packaging plugin -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <!-- Step 11: Maven Compiler Plugin for Java 17 and Lombok processor -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

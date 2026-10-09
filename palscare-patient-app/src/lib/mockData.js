@@ -503,13 +503,17 @@ function getSeedAppointments() {
 }
 
 function normalizeAppointment(appointment) {
-  const doc = findDoctor(appointment.doctorId);
+  if (!appointment) return null;
+  const doc = findDoctor(appointment.doctorId) || { name: "Doctor", specialty: "General Medicine", photo: "" };
+  const rawStatus = appointment.status != null ? String(appointment.status).trim().toLowerCase() : "upcoming";
+  const normalizedStatus = rawStatus === "booked" ? "upcoming" : rawStatus;
+
   return {
     ...appointment,
     doctorName: appointment.doctorName || doc.name,
     doctorSpecialty: appointment.doctorSpecialty || doc.specialty,
     doctorPhoto: appointment.doctorPhoto || doc.photo,
-    status: appointment.status || "upcoming",
+    status: normalizedStatus,
     mode: appointment.mode || (appointment.consultationMode === "VIDEO" ? "telemedicine" : "in-person"),
     consultationMode: appointment.consultationMode || (appointment.mode === "telemedicine" ? "VIDEO" : "CHAMBER"),
   };

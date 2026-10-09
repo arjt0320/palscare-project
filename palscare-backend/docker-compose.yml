@@ -1,21 +1,47 @@
+# ==============================================================================
+# PalsCare Microservices Ecosystem - Docker Compose Orchestration
+# ==============================================================================
+# Purpose:
+#   This file spins up supporting infrastructure services for the PalsCare
+#   healthcare platform:
+#     1. MongoDB (NoSQL database engine storing users, doctors, chambers, slots,
+#        appointments, and payment audits across all microservices).
+#     2. RabbitMQ (Message broker for asynchronous inter-service events).
+# ==============================================================================
+
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: palscare-postgres
+  # ----------------------------------------------------------------------------
+  # Step 1: MongoDB Database Service
+  # ----------------------------------------------------------------------------
+  # - Image: Official MongoDB Community Edition image (mongo:6.0)
+  # - Port: 27017 mapped to host for direct connection from Spring Boot microservices
+  # - Persistence: Docker volume 'mongodata' ensures data survives container restarts
+  # ----------------------------------------------------------------------------
+  mongodb:
+    image: mongo:6.0
+    container_name: palscare-mongodb
+    restart: always
     ports:
-      - "5432:5432"
+      - "27017:27017"
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: palscare
+      # Default database created on initialization
+      MONGO_INITDB_DATABASE: palscare
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - mongodata:/data/db
 
+  # ----------------------------------------------------------------------------
+  # Step 2: RabbitMQ Message Broker
+  # ----------------------------------------------------------------------------
+  # - Image: RabbitMQ with management web console pre-installed
+  # - Port 5672: AMQP protocol port for Spring Boot messaging
+  # - Port 15672: Web management dashboard (http://localhost:15672, guest/guest)
+  # ----------------------------------------------------------------------------
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: palscare-rabbitmq
+    restart: always
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -25,6 +51,11 @@ services:
     volumes:
       - rabbitmqdata:/var/lib/rabbitmq
 
+# ------------------------------------------------------------------------------
+# Persistent Volume Declarations
+# ------------------------------------------------------------------------------
 volumes:
-  pgdata:
+  mongodata:
+    driver: local
   rabbitmqdata:
+    driver: local
