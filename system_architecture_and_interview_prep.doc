@@ -1,0 +1,495 @@
+<html xmlns:o='urn:schemas-microsoft-com:office:office' 
+      xmlns:w='urn:schemas-microsoft-com:office:word' 
+      xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+<title>PalsCare: System Design, Architecture & Advanced Interview Prep Guide</title>
+<!--[if gte mso 9]>
+<xml>
+ <w:WordDocument>
+  <w:View>Print</w:View>
+  <w:Zoom>100</w:Zoom>
+ </w:WordDocument>
+</xml>
+<![endif]-->
+<style>
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.6;
+    color: #333333;
+    margin: 1in;
+}
+h1 {
+    font-size: 20pt;
+    color: #1b365d;
+    border-bottom: 2px solid #1b365d;
+    padding-bottom: 5px;
+    margin-top: 24pt;
+    margin-bottom: 12pt;
+}
+h2 {
+    font-size: 15pt;
+    color: #2c5e8a;
+    margin-top: 18pt;
+    margin-bottom: 8pt;
+    border-bottom: 1px solid #dddddd;
+    padding-bottom: 3px;
+}
+h3 {
+    font-size: 12.5pt;
+    color: #4a779d;
+    margin-top: 14pt;
+    margin-bottom: 6pt;
+}
+p {
+    margin-top: 0;
+    margin-bottom: 10pt;
+}
+ul, ol {
+    margin-top: 0;
+    margin-bottom: 10pt;
+    padding-left: 20px;
+}
+li {
+    margin-bottom: 4pt;
+}
+code {
+    font-family: 'Consolas', 'Courier New', monospace;
+    background-color: #f4f4f4;
+    padding: 1px 3px;
+    font-size: 9.5pt;
+    color: #d14;
+}
+pre {
+    background-color: #f8f9fa;
+    border: 1px solid #e1e4e8;
+    border-radius: 5px;
+    padding: 12px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 9.5pt;
+    margin-top: 0;
+    margin-bottom: 12pt;
+    line-height: 1.4;
+    color: #24292e;
+}
+.highlight {
+    background-color: #fffbdd;
+    padding: 2px 4px;
+}
+.note {
+    background-color: #f1f8ff;
+    border-left: 4px solid #0366d6;
+    padding: 10px;
+    margin-bottom: 12pt;
+}
+.warning {
+    background-color: #fff5f5;
+    border-left: 4px solid #e53e3e;
+    padding: 10px;
+    margin-bottom: 12pt;
+}
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 12pt;
+    margin-top: 6pt;
+}
+th, td {
+    border: 1px solid #dfe2e5;
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 10pt;
+}
+th {
+    background-color: #f6f8fa;
+    font-weight: bold;
+}
+</style>
+</head>
+<body>
+
+<div style="text-align: center; margin-bottom: 30pt; margin-top: 10pt;">
+    <h1 style="border-bottom: none; font-size: 26pt; color: #1b365d; margin-bottom: 5pt;">PalsCare</h1>
+    <h3 style="font-size: 16pt; color: #555555; font-weight: normal; margin-top: 0;">System Design, Architecture & Advanced Interview Prep Guide</h3>
+    <p style="font-size: 10pt; color: #777777;">Custom-Tailored for Java / Spring Boot / Microservices (4+ Years Experience)</p>
+</div>
+
+<hr style="border: 0; border-top: 1px solid #dddddd; margin-bottom: 20pt;" />
+
+<h1>1. System Architecture & Topology</h1>
+<p>PalsCare is built as a decentralized, event-driven microservices architecture to ensure high scalability, reliability, and modularity.</p>
+
+<h3>Core Components:</h3>
+<ul>
+    <li><strong>API Gateway (Spring Cloud Gateway)</strong>: Serves as the single entry point. Responsible for routing, SSL termination, global CORS management, and forwarding authenticated headers downstream.</li>
+    <li><strong>Service Discovery (Netflix Eureka)</strong>: Enables microservices to dynamically locate and communicate with each other without hardcoded hostnames or ports.</li>
+    <li><strong>Core Microservices</strong>:
+        <ul>
+            <li><strong>User Service</strong>: Manages accounts, credentials, encryption, authentication (JWT creation), and Doctor/Patient clinical profiles.</li>
+            <li><strong>Doctor Slot Service</strong>: Manages clinics/chambers, slot configuration, and availability state.</li>
+            <li><strong>Booking Service</strong>: Manages consultation bookings, appointments state transitions (Created, Upcoming, Completed, Cancelled).</li>
+        </ul>
+    </li>
+    <li><strong>Message Broker (RabbitMQ)</strong>: Facilitates async, event-driven slot-state synchronization between the Booking Service and the Doctor Slot Service (using fanout/topic exchanges).</li>
+    <li><strong>Database (PostgreSQL)</strong>: Shared-schema partitioned deployment.</li>
+</ul>
+
+<h1>2. Requirements Analysis</h1>
+
+<h2>Functional Requirements (FR)</h2>
+<ul>
+    <li><strong>Authentication</strong>: Multi-role registrations and logins (Patient and Doctor roles) with secure password hashing.</li>
+    <li><strong>Onboarding</strong>: Separate onboarding screens. Patient inputs basic history and blood group; Doctor configures chambers (name, address), university, and years of experience.</li>
+    <li><strong>Slot Generation</strong>: Doctors can generate specific day/time slots (Online or Chamber-specific).</li>
+    <li><strong>Consultation Booking</strong>: Patients search doctors by specialty, select an available slot, enter patient details (name, phone, reason), and book the appointment.</li>
+    <li><strong>Appointment Tracking</strong>: Both patient and doctor can view their upcoming/past appointments. Doctors can cancel or complete them.</li>
+</ul>
+
+<h2>Non-Functional Requirements (NFR)</h2>
+<ul>
+    <li><strong>High Availability & Scalability</strong>: Services run in separate Docker containers, ready to scale horizontally behind the API Gateway.</li>
+    <li><strong>Low Latency & High Responsiveness</strong>: Gateway header propagation ensures downstream services do not perform duplicate database queries to authorize requests.</li>
+    <li><strong>Resiliency</strong>: Circuit breaker patterns (Spring Cloud CircuitBreaker / Resilience4j) limit cascading service failures.</li>
+    <li><strong>Data Consistency</strong>: Eventual consistency between Booking and Slot services managed asynchronously using RabbitMQ events.</li>
+</ul>
+
+<h1>3. Core Software Engineering Concepts & Algorithms</h1>
+<ul>
+    <li><strong>Prefix Trees (Tries) & Hash Maps</strong>: Utilized by Spring Cloud Gateway internally to match incoming URI request paths against configured routes (e.g., matching <code>/api/v1/auth/**</code> to <code>user-service</code>).</li>
+    <li><strong>Optimistic Locking</strong>: Implemented on the <code>Slot</code> entity using JPA <code>@Version</code> to handle concurrency.
+        <div class="note">
+            <strong>Scenario:</strong> Two patients try to book the exact same slot at the same millisecond.<br/>
+            <strong>Algorithm:</strong> The database verifies the version field before writing. The transaction that commits first increments the version. The second transaction encounters an <code>OptimisticLockingFailureException</code> and is safely rolled back.
+        </div>
+    </li>
+    <li><strong>Collection Framework Usage</strong>:
+        <ul>
+            <li><code>ArrayList</code>: Used throughout controller response lists for O(1) read/index performance since we are mapping entities to DTOs sequentially.</li>
+            <li><code>ConcurrentHashMap</code>: Utilized in local mock-caching layers for thread-safe concurrent reads/writes without global synchronization blocks.</li>
+        </ul>
+    </li>
+</ul>
+
+<h1>4. Java Features Profile (Java 8 to Java 17)</h1>
+
+<h2>Java 8 Features</h2>
+<ul>
+    <li><strong>Streams API</strong>: Extensively used to filter collections, transform entity databases into DTO responses, and collect results:
+        <pre>List&lt;SlotResponse&gt; available = slots.stream()
+    .filter(slot -> !slot.isBooked())
+    .map(this::convertToResponseDto)
+    .collect(Collectors.toList());</pre>
+    </li>
+    <li><strong>Optional API</strong>: Prevented <code>NullPointerException</code> errors in repository searches:
+        <pre>User user = userRepository.findByEmail(email)
+    .orElseThrow(() -> new ResourceNotFoundException("User not found"));</pre>
+    </li>
+    <li><strong>Date & Time API (<code>java.time</code>)</strong>: Switched from legacy <code>Date</code> to thread-safe <code>LocalDate</code> and <code>LocalDateTime</code> for handling appointment dates and time slots.</li>
+</ul>
+
+<h2>Java 11 Features</h2>
+<ul>
+    <li><strong><code>var</code> (Local Variable Type Inference)</strong>: Used inside method scopes to reduce boilerplate:
+        <pre>var user = userService.getCurrentUser();
+var slots = slotService.getAvailableSlots(user.getId());</pre>
+    </li>
+</ul>
+
+<h2>Java 17 Features</h2>
+<ul>
+    <li><strong>Record Classes</strong>: Used for immutable Data Transfer Objects (DTOs), replacing boilerplate getters, setters, equals, and hashcode methods:
+        <pre>public record LoginRequest(String identifier, String password, String userType) {}</pre>
+    </li>
+    <li><strong>Pattern Matching for Switch</strong>: Simplified custom exception classification and handling:
+        <pre>String message = switch (ex) {
+    case DataIntegrityViolationException dive -> handleDatabaseConflict(dive);
+    case MethodArgumentNotValidException manve -> "Validation failed";
+    default -> "Internal server error";
+};</pre>
+    </li>
+    <li><strong>Text Blocks</strong>: Cleaned up complex SQL queries and mock JSON definitions:
+        <pre>String schemaJson = """
+    {
+      "role": "DOCTOR",
+      "permissions": ["READ", "WRITE"]
+    }
+    """;</pre>
+    </li>
+</ul>
+
+<h1>5. Security & Authentication Architecture</h1>
+<p>Authentication is entirely stateless and decentralized. The User Service validates credentials and issues a JWT token. For subsequent requests, the client passes this JWT in the Authorization header. The API Gateway validates the signature, extracts claims (UserId, Email, Role), and propagates them downstream using custom <code>X-User-*</code> headers. Downstream services validate these headers in a filter and establish the <code>SecurityContext</code>.</p>
+
+<h1>6. Database Design & Consistency</h1>
+<ul>
+    <li><strong><code>users</code> Table</strong>: Stores core auth credentials, email (unique), phone (unique), password hash, and <code>user_type</code>.</li>
+    <li><strong><code>doctors</code> Table</strong>: Mapped to <code>users</code> via <code>user_uid</code> (Foreign Key). Contains unique constraint on <code>registration_number</code>.</li>
+    <li><strong><code>slots</code> Table</strong>: Tracks days, start times, booking status, and a reference to the <code>chamber</code>.</li>
+    <li><strong><code>appointments</code> Table</strong>: Contains references to patient ID, doctor ID, slot ID, status, and cancellation reason.</li>
+</ul>
+
+<hr style="border: 0; border-top: 1px solid #dddddd; margin-top: 30pt; margin-bottom: 30pt;" />
+
+<h1>7. Advanced Hands-On Coding & Scenario Questions</h1>
+
+<h2>Category A: Core Java, Collections, Lambda & Streams API</h2>
+
+<h3>Q1: Data Aggregation Task (Streams API & Collections)</h3>
+<p><strong>Scenario:</strong> You need to generate a report for the hospital administrator. Given a list of <code>Appointment</code> objects, write a method to group them by the doctor's specialty, count the number of appointments in each specialty, and return a map sorted by the count in descending order.</p>
+
+<pre>package com.palscare.interview;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import java.util.*;
+import java.util.stream.Collectors;
+
+public class AppointmentReportGenerator {
+
+    @Data
+    @AllArgsConstructor
+    public static class Appointment {
+        private Long id;
+        private String doctorName;
+        private String specialty;
+        private String patientName;
+    }
+
+    public Map&lt;String, Long&gt; getSpecialtyBookingCountDesc(List&lt;Appointment&gt; appointments) {
+        if (appointments == null || appointments.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        return appointments.stream()
+            .filter(Objects::nonNull)
+            .filter(appt -> appt.getSpecialty() != null && !appt.getSpecialty().isBlank())
+            // 1. Group by specialty and count
+            .collect(Collectors.groupingBy(Appointment::getSpecialty, Collectors.counting()))
+            .entrySet()
+            .stream()
+            // 2. Sort by map value (count) descending
+            .sorted(Map.Entry.&lt;String, Long&gt;comparingByValue().reversed())
+            // 3. Collect into a LinkedHashMap to preserve sorting order
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                Map.Entry::getValue,
+                (oldVal, newVal) -> oldVal,
+                LinkedHashMap::new
+            ));
+    }
+}</pre>
+
+---
+
+<h3>Q2: High-Concurrency Thread-Safe Local Cache (Map & Concurrency)</h3>
+<p><strong>Scenario:</strong> In PalsCare, fetching the list of slots hits the database frequently. You are asked to implement a simple, in-memory cache for available slots. The cache must be thread-safe for highly concurrent reads and writes, and it must support entry expiration (TTL of 10 minutes) to prevent memory leaks.</p>
+
+<pre>package com.palscare.interview;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import java.util.concurrent.ConcurrentHashMap;
+
+public class ThreadSafeSlotCache&lt;K, V&gt; {
+
+    @Getter
+    @AllArgsConstructor
+    private static class CacheEntry&lt;V&gt; {
+        private final V value;
+        private final long expiryTime;
+
+        public boolean isExpired() {
+            return System.currentTimeMillis() > expiryTime;
+        }
+    }
+
+    private final ConcurrentHashMap&lt;K, CacheEntry&lt;V&gt;&gt; cache = new ConcurrentHashMap&lt;&gt;();
+    private final long ttlMillis;
+
+    public ThreadSafeSlotCache(long ttlMinutes) {
+        this.ttlMillis = ttlMinutes * 60 * 1000;
+    }
+
+    public void put(K key, V value) {
+        long expiry = System.currentTimeMillis() + ttlMillis;
+        cache.put(key, new CacheEntry&lt;&gt;(value, expiry));
+    }
+
+    public V get(K key) {
+        CacheEntry&lt;V&gt; entry = cache.get(key);
+        if (entry == null) {
+            return null;
+        }
+        
+        if (entry.isExpired()) {
+            cache.remove(key); // Lazy cleanup
+            return null;
+        }
+        return entry.getValue();
+    }
+
+    public void cleanExpiredEntries() {
+        // Active cleanup for scheduling (preventing memory leaks)
+        cache.entrySet().removeIf(entry -> entry.getValue().isExpired());
+    }
+}</pre>
+
+---
+
+<h2>Category B: Spring Boot Features, AOP & Annotations</h2>
+
+<h3>Q3: Custom Spring Boot Validation Annotation</h3>
+<p><strong>Scenario:</strong> In the doctor onboarding process, all doctor registration numbers must follow a specific pattern: <code>REG-</code> followed by exactly 4 digits, then 3 uppercase letters (e.g. <code>REG-1234ABC</code>). Create a custom validation annotation and its corresponding validator implementation in Spring Boot.</p>
+
+<pre>package com.palscare.interview.validation;
+
+import jakarta.validation.Constraint;
+import jakarta.validation.Payload;
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
+import java.lang.annotation.*;
+
+@Documented
+@Constraint(validatedBy = RegistrationNumberValidator.class)
+@Target({ ElementType.FIELD, ElementType.METHOD })
+@Retention(RetentionPolicy.RUNTIME)
+public @interface ValidRegistrationNumber {
+    String message() default "Invalid registration number. Must start with REG- followed by 4 digits and 3 uppercase letters.";
+    Class&lt;?&gt;[] groups() default {};
+    Class&lt;? extends Payload&gt;[] payload() default {};
+}
+
+class RegistrationNumberValidator implements ConstraintValidator&lt;ValidRegistrationNumber, String&gt; {
+    private static final String REGEX = "^REG-\\d{4}[A-Z]{3}$";
+
+    @Override
+    public boolean isValid(String value, ConstraintValidatorContext context) {
+        if (value == null) {
+            return false;
+        }
+        return value.matches(REGEX);
+    }
+}</pre>
+
+---
+
+<h3>Q4: Spring AOP for Performance Logging</h3>
+<p><strong>Scenario:</strong> You want to track performance bottlenecks in your microservice without polluting your controllers and services with timing code. Write a Spring Aspect that logs the execution duration of any method in your service package annotated with a custom <code>@LogExecutionTime</code> annotation.</p>
+
+<pre>package com.palscare.interview.aop;
+
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
+import org.aspectj.lang.annotation.Aspect;
+import org.springframework.stereotype.Component;
+import lombok.extern.slf4j.Slf4j;
+import java.lang.annotation.*;
+
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+@interface LogExecutionTime {}
+
+@Aspect
+@Component
+@Slf4j
+public class PerformanceAspect {
+
+    @Around("@annotation(LogExecutionTime)")
+    public Object logExecutionTime(ProceedingJoinPoint joinPoint) throws Throwable {
+        long start = System.currentTimeMillis();
+        try {
+            return joinPoint.proceed();
+        } finally {
+            long executionTime = System.currentTimeMillis() - start;
+            log.info("[PERFORMANCE] {} executed in {}ms", joinPoint.getSignature().toShortString(), executionTime);
+        }
+    }
+}</pre>
+
+---
+
+<h2>Category C: Transaction Management & Database Layer</h2>
+
+<h3>Q5: Spring @Transactional Self-Invocation Gotcha</h3>
+<p><strong>Scenario:</strong> Explain why internal helper transactional methods are bypassed in Spring, and write a correct refactored solution using separation of concerns.</p>
+
+<div class="warning">
+    <strong>The Problem:</strong> When a method calls another transactional method inside the same class instance, it bypasses the Spring proxy interceptor, ignoring <code>@Transactional</code>.
+</div>
+
+<pre>@Service
+@RequiredArgsConstructor
+public class BookingService {
+    private final AppointmentWriter appointmentWriter;
+
+    public void bookSlotAndLog(AppointmentRequest req) {
+        // Business validation logic...
+        appointmentWriter.saveAppointment(req); // Invoke through proxy bean
+    }
+}
+
+@Component
+@RequiredArgsConstructor
+class AppointmentWriter {
+    private final AppointmentRepository appointmentRepository;
+    private final SlotRepository slotRepository;
+
+    @Transactional
+    public void saveAppointment(AppointmentRequest req) {
+        appointmentRepository.save(new Appointment(...));
+        slotRepository.updateStatus(req.getSlotId(), "BOOKED");
+    }
+}</pre>
+
+---
+
+<h3>Q6: Solving the JPA N+1 Query Problem</h3>
+<p><strong>Scenario:</strong> Fetching a list of doctors triggers N+1 select queries to load their chambers. Write a Spring Data JPA repository method that loads doctors and their chambers in a single database query.</p>
+
+<pre>@Repository
+public interface DoctorRepository extends JpaRepository&lt;Doctor, Long&gt; {
+
+    // Solution A: Using JOIN FETCH (JPQL Query)
+    @Query("SELECT DISTINCT d FROM Doctor d LEFT JOIN FETCH d.chambers")
+    List&lt;Doctor&gt; findAllWithChambersJoined();
+
+    // Solution B: Using Entity Graph
+    @EntityGraph(attributePaths = {"chambers"})
+    @Query("SELECT d FROM Doctor d")
+    List&lt;Doctor&gt; findAllWithChambersGraph();
+}</pre>
+
+---
+
+<h2>Category D: System Design & Eventual Consistency</h2>
+
+<h3>Q7: Distributed Transactions vs. Eventual Consistency</h3>
+<p><strong>Scenario:</strong> Booking Service saves an appointment, and Slot Service updates slot availability. How do you design this process to be reliable across microservices without using costly 2PC/XA transactions?</p>
+
+<div class="note">
+    <strong>Solution:</strong> Use the Saga Orchestration Pattern via RabbitMQ. The Booking Service writes the booking as <code>PENDING</code>, emits a <code>slot-book-event</code>, and updates status to <code>CONFIRMED</code> or <code>FAILED</code> depending on the async response event.
+</div>
+
+<pre>@Component
+@Slf4j
+@RequiredArgsConstructor
+public class BookingEventConsumer {
+    private final AppointmentRepository appointmentRepository;
+
+    @RabbitListener(queues = "booking-confirmation-queue")
+    public void handleSlotBookingResult(SlotBookingResultEvent event) {
+        Appointment appointment = appointmentRepository.findById(event.getBookingId())
+            .orElseThrow(() -> new IllegalStateException("Appointment not found"));
+
+        if (event.isSuccess()) {
+            appointment.setStatus("CONFIRMED");
+        } else {
+            appointment.setStatus("FAILED");
+            appointment.setFailureReason(event.getErrorMessage());
+        }
+        appointmentRepository.save(appointment);
+    }
+}</pre>
+
+</body>
+</html>
